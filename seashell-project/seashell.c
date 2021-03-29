@@ -383,11 +383,48 @@ int process_command(struct command_t *command)
 	}
 
 	// TODO: your implementation here
+    // Question 2
+    if (strcmp(command->name, "shortdir")==0)
+    {
+        if (command->arg_count > 0)
+        {
+            r = chdir(command->args[0]);
+            if (r==-1)
+            {
+                printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));               
+            }
+            
+            // shortdir set
+            if (strcmp(command->args[0], "set") == 0) {
+                const char *path;
+                path = getenv("PATH");
+                char *shortname = command->args[1];
+            } else if (strcmp(command->args[0], "jump") == 0) {
+                const char *path;
+                path = getenv("PATH");
+                char *shortname = command->args[1];
+        
+                //system(strcat(cd, shortnameValue));
+            } else if (strcmp(command->args[0], "del") == 0) { 
+                const char *path;
+                path = getenv("PATH");
+                char * shortname = command->args[1];
+            } else if (strcmp(command->args[0], "clear") == 0) {
+                const char *path;
+                path = getenv("PATH");
+            } else if (strcmp(command->args[0], "list") == 0) {
+                const char *path;
+                path = getenv("PATH");  
+            }
+            return SUCCESS;
+        }
+    }
 
 	printf("-%s: %s: command not found\n", sysname, command->name);
 	return UNKNOWN;
 }
 
+// HELPER FUNCTIONS
 // Helper function for getting file path
 const char* getFilePath(char *cmd) {
 		char innerCommand[100] = "which ";
@@ -405,3 +442,5 @@ const char* getFilePath(char *cmd) {
 		
 		return buff;
 	}
+
+// Helper function for hash table implementation
