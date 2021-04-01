@@ -6,8 +6,12 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <ctype.h>
+
 const char *sysname = "seashell";
 const char *getFilePath(char *cmd);
+int changeColor(char *color, char *word);
+char *myreadFile(char *document);
 
 enum return_codes
 {
@@ -386,7 +390,7 @@ int process_command(struct command_t *command)
     {
         if (!command->background)
             wait(0); // wait for child process to finish
-        return SUCCESS;
+            //return SUCCESS;
     }
 
     // TODO: your implementation here
@@ -434,11 +438,54 @@ int process_command(struct command_t *command)
         }
     }
 
+    // Part3
+    if (strcmp(command->name, "highlight") == 0)
+    {
+        if (command->arg_count > 0)
+        {
+            char *word = command->args[0];
+            char *color = command->args[1];
+            char *filename = command->args[2];
+
+            char *mybuff = myreadFile(filename);
+
+            char *buffer = strtok(mybuff, " ");
+
+            while (buffer != NULL)
+            {
+                char *tempbuffer;
+                strcpy(tempbuffer, buffer);
+                size_t len = strlen(tempbuffer);
+                char *lower = calloc(len + 1, sizeof(char));
+                for (size_t i = 0; i < len; ++i)
+                {
+                    lower[i] = tolower((unsigned char)tempbuffer[i]);
+                }
+
+                if (strcmp(lower, word) == 0)
+                {
+                    changeColor(color, buffer);
+                }
+                /*
+               if (strcmp(buffer, word) == 0)
+                {
+                    changeColor(color, buffer);
+                }
+                */
+                else
+                {
+                    printf("%s ", buffer);
+                }
+                free(lower);
+
+                buffer = strtok(NULL, " ");
+            }
+        }
+    }
+
     printf("-%s: %s: command not found\n", sysname, command->name);
     return UNKNOWN;
 }
-
-// Part3
 
 // Part4
 
@@ -466,4 +513,42 @@ const char *getFilePath(char *cmd)
     return buff;
 }
 
-// Helper function for hash table implementation
+// HELPER FUNCTION FOR QUESTION 3 COLOR CHANGER
+int changeColor(char *color, char *word)
+{
+    if (strcmp(color, "b") == 0)
+    {
+        printf("\x1B[44m"
+               "%s"
+               "\x1B[0m ",
+               word);
+    }
+    else if (strcmp(color, "r") == 0)
+    {
+        printf("\x1B[41m"
+               "%s"
+               "\x1B[0m ",
+               word);
+    }
+    else if (strcmp(color, "g") == 0)
+    {
+        printf("\x1B[42m"
+               "%s"
+               "\x1B[0m ",
+               word);
+    }
+}
+
+char *myreadFile(char *document)
+{
+    FILE *fp;
+    fp = fopen(document, "r");
+
+    char *buff = malloc(555);
+    //fscanf(fp, "%s", buff);
+
+    fread(buff, 555, 1, fp);
+    fclose(fp);
+
+    return buff;
+}
