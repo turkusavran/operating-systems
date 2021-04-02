@@ -10,8 +10,8 @@
 
 const char *sysname = "seashell";
 const char *getFilePath(char *cmd);
-int changeColor(char *color, char *word);
-char *myreadFile(char *document);
+void changeColor(char *color, char *word);
+char *readFile(char *document);
 
 enum return_codes
 {
@@ -390,14 +390,14 @@ int process_command(struct command_t *command)
     {
         if (!command->background)
             wait(0); // wait for child process to finish
-            //return SUCCESS;
+                     //return SUCCESS;
     }
 
     // TODO: your implementation here
     // Part 2
     if (strcmp(command->name, "shortdir") == 0)
     {
-        if (command->arg_count > 0)
+        if (command->arg_count == 1)
         {
             r = chdir(command->args[0]);
             if (r == -1)
@@ -439,62 +439,58 @@ int process_command(struct command_t *command)
     }
 
     // Part3
-    if (strcmp(command->name, "highlight") == 0)
+    if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3)
     {
-        if (command->arg_count > 0)
+        char *word = command->args[0];
+        char *color = command->args[1];
+        char *filename = command->args[2];
+
+        char *mybuff = readFile(filename);
+
+        char *buffer = strtok(mybuff, " ");
+
+        while (buffer != NULL)
         {
-            char *word = command->args[0];
-            char *color = command->args[1];
-            char *filename = command->args[2];
-
-            char *mybuff = myreadFile(filename);
-
-            char *buffer = strtok(mybuff, " ");
-
-            while (buffer != NULL)
+            char *tempbuffer;
+            strcpy(tempbuffer, buffer);
+            size_t len = strlen(tempbuffer);
+            char *lower = calloc(len + 1, sizeof(char));
+            for (size_t i = 0; i < len; ++i)
             {
-                char *tempbuffer;
-                strcpy(tempbuffer, buffer);
-                size_t len = strlen(tempbuffer);
-                char *lower = calloc(len + 1, sizeof(char));
-                for (size_t i = 0; i < len; ++i)
-                {
-                    lower[i] = tolower((unsigned char)tempbuffer[i]);
-                }
-
-                if (strcmp(lower, word) == 0)
-                {
-                    changeColor(color, buffer);
-                }
-                /*
-               if (strcmp(buffer, word) == 0)
-                {
-                    changeColor(color, buffer);
-                }
-                */
-                else
-                {
-                    printf("%s ", buffer);
-                }
-                free(lower);
-
-                buffer = strtok(NULL, " ");
+                lower[i] = tolower((unsigned char)tempbuffer[i]);
             }
+
+            if (strcmp(lower, word) == 0)
+            {
+                changeColor(color, buffer);
+            }
+            /*
+            if (strcmp(buffer, word) == 0)
+            {
+                changeColor(color, buffer);
+            }
+            */
+            else
+            {
+                printf("%s ", buffer);
+            }
+            free(lower);
+
+            buffer = strtok(NULL, " ");
         }
     }
+    // Part4
+
+    // Part5
+
+    // Part6
 
     printf("-%s: %s: command not found\n", sysname, command->name);
     return UNKNOWN;
 }
 
-// Part4
-
-// Part5
-
-// Part6
-
 // HELPER FUNCTIONS
-// Helper function for getting file path
+// Get the file path
 const char *getFilePath(char *cmd)
 {
     char innerCommand[100] = "which ";
@@ -513,8 +509,8 @@ const char *getFilePath(char *cmd)
     return buff;
 }
 
-// HELPER FUNCTION FOR QUESTION 3 COLOR CHANGER
-int changeColor(char *color, char *word)
+// Change the given word into given color
+void changeColor(char *color, char *word)
 {
     if (strcmp(color, "b") == 0)
     {
@@ -539,7 +535,8 @@ int changeColor(char *color, char *word)
     }
 }
 
-char *myreadFile(char *document)
+// Read given file and return as a string
+char *readFile(char *document)
 {
     FILE *fp;
     fp = fopen(document, "r");
