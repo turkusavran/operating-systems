@@ -353,93 +353,46 @@ int process_command(struct command_t *command)
             return SUCCESS;
         }
     }
-
-    pid_t pid = fork();
-    if (pid == 0) // child
+    else if (strcmp(command->name, "shortdir") == 0 && command->arg_count == 1) //Part2
     {
-        /// This shows how to do exec with environ (but is not available on MacOs)
-        // extern char** environ; // environment variables
-        // execvpe(command->name, command->args, environ); // exec+args+path+environ
-
-        /// This shows how to do exec with auto-path resolve
-        // add a NULL argument to the end of args, and the name to the beginning
-        // as required by exec
-
-        // increase args size by 2
-        command->args = (char **)realloc(
-            command->args, sizeof(char *) * (command->arg_count += 2));
-
-        // shift everything forward by 1
-        for (int i = command->arg_count - 2; i > 0; --i)
-            command->args[i] = command->args[i - 1];
-
-        // set args[0] as a copy of name
-        command->args[0] = strdup(command->name);
-        // set args[arg_count-1] (last) to NULL
-        command->args[command->arg_count - 1] = NULL;
-
-        //execvp(command->name, command->args); // exec+args+path
-        const char *path;
-        path = getFilePath(command->name);
-        execv(path, command->args);
-
-        exit(0);
-        /// TODO: do your own exec with path resolving using execv()
+        r = chdir(command->args[0]);
+		if (r == -1)
+		{
+			printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
+		}
+		// shortdir set
+		if (strcmp(command->args[0], "set") == 0)
+		{
+			const char *path;
+			path = getenv("PATH");
+			char *shortname = command->args[1];
+		}
+		else if (strcmp(command->args[0], "jump") == 0)
+		{
+			const char *path;
+			path = getenv("PATH");
+			char *shortname = command->args[1];
+			//system(strcat(cd, shortnameValue));
+		}
+		else if (strcmp(command->args[0], "del") == 0)
+		{
+			const char *path;
+			path = getenv("PATH");
+			char *shortname = command->args[1];
+		}
+		else if (strcmp(command->args[0], "clear") == 0)
+		{
+			const char *path;
+			path = getenv("PATH");
+		}
+		else if (strcmp(command->args[0], "list") == 0)
+		{
+			const char *path;
+			path = getenv("PATH");
+		}
+        return SUCCESS;
     }
-    else
-    {
-        if (!command->background)
-            wait(0); // wait for child process to finish
-                     //return SUCCESS;
-    }
-
-    // TODO: your implementation here
-    // Part 2
-    if (strcmp(command->name, "shortdir") == 0)
-    {
-        if (command->arg_count == 1)
-        {
-            r = chdir(command->args[0]);
-            if (r == -1)
-            {
-                printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
-            }
-            // shortdir set
-            if (strcmp(command->args[0], "set") == 0)
-            {
-                const char *path;
-                path = getenv("PATH");
-                char *shortname = command->args[1];
-            }
-            else if (strcmp(command->args[0], "jump") == 0)
-            {
-                const char *path;
-                path = getenv("PATH");
-                char *shortname = command->args[1];
-                //system(strcat(cd, shortnameValue));
-            }
-            else if (strcmp(command->args[0], "del") == 0)
-            {
-                const char *path;
-                path = getenv("PATH");
-                char *shortname = command->args[1];
-            }
-            else if (strcmp(command->args[0], "clear") == 0)
-            {
-                const char *path;
-                path = getenv("PATH");
-            }
-            else if (strcmp(command->args[0], "list") == 0)
-            {
-                const char *path;
-                path = getenv("PATH");
-            }
-            return SUCCESS;
-        }
-    }
-
-    // Part3
-    if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3)
+    else if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3) //Part3
     {
         char *word = command->args[0];
         char *color = command->args[1];
@@ -478,12 +431,53 @@ int process_command(struct command_t *command)
 
             buffer = strtok(NULL, " ");
         }
+		return SUCCESS;
     }
     // Part4
 
     // Part5
 
     // Part6
+
+    pid_t pid = fork();
+    if (pid == 0) // child
+    {
+        /// This shows how to do exec with environ (but is not available on MacOs)
+        // extern char** environ; // environment variables
+        // execvpe(command->name, command->args, environ); // exec+args+path+environ
+
+        /// This shows how to do exec with auto-path resolve
+        // add a NULL argument to the end of args, and the name to the beginning
+        // as required by exec
+
+        // increase args size by 2
+        command->args = (char **)realloc(
+            command->args, sizeof(char *) * (command->arg_count += 2));
+
+        // shift everything forward by 1
+        for (int i = command->arg_count - 2; i > 0; --i)
+            command->args[i] = command->args[i - 1];
+
+        // set args[0] as a copy of name
+        command->args[0] = strdup(command->name);
+        // set args[arg_count-1] (last) to NULL
+        command->args[command->arg_count - 1] = NULL;
+
+        //execvp(command->name, command->args); // exec+args+path
+		// TODO: do your own exec with path resolving using execv()
+        const char *path;
+        path = getFilePath(command->name);
+        execv(path, command->args);
+
+        exit(0);
+    }
+    else
+    {
+        if (!command->background)
+            wait(0); // wait for child process to finish
+        return SUCCESS;
+    }
+
 
     printf("-%s: %s: command not found\n", sysname, command->name);
     return UNKNOWN;
