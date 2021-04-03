@@ -353,46 +353,48 @@ int process_command(struct command_t *command)
             return SUCCESS;
         }
     }
-    else if (strcmp(command->name, "shortdir") == 0 && command->arg_count == 1) //Part2
+    if (strcmp(command->name, "shortdir") == 0 && command->arg_count == 1) //Part2
     {
         r = chdir(command->args[0]);
-		if (r == -1)
-		{
-			printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
-		}
-		// shortdir set
-		if (strcmp(command->args[0], "set") == 0)
-		{
-			const char *path;
-			path = getenv("PATH");
-			char *shortname = command->args[1];
-		}
-		else if (strcmp(command->args[0], "jump") == 0)
-		{
-			const char *path;
-			path = getenv("PATH");
-			char *shortname = command->args[1];
-			//system(strcat(cd, shortnameValue));
-		}
-		else if (strcmp(command->args[0], "del") == 0)
-		{
-			const char *path;
-			path = getenv("PATH");
-			char *shortname = command->args[1];
-		}
-		else if (strcmp(command->args[0], "clear") == 0)
-		{
-			const char *path;
-			path = getenv("PATH");
-		}
-		else if (strcmp(command->args[0], "list") == 0)
-		{
-			const char *path;
-			path = getenv("PATH");
-		}
+        if (r == -1)
+        {
+            printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
+        }
+        // shortdir set
+        if (strcmp(command->args[0], "set") == 0)
+        {
+            const char *path;
+            path = getenv("PATH");
+            char *shortname = command->args[1];
+        }
+        else if (strcmp(command->args[0], "jump") == 0)
+        {
+            const char *path;
+            path = getenv("PATH");
+            char *shortname = command->args[1];
+            //system(strcat(cd, shortnameValue));
+        }
+        else if (strcmp(command->args[0], "del") == 0)
+        {
+            const char *path;
+            path = getenv("PATH");
+            char *shortname = command->args[1];
+        }
+        else if (strcmp(command->args[0], "clear") == 0)
+        {
+            const char *path;
+            path = getenv("PATH");
+        }
+        else if (strcmp(command->args[0], "list") == 0)
+        {
+            const char *path;
+            path = getenv("PATH");
+        }
         return SUCCESS;
     }
-    else if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3) //Part3
+
+    /*
+    if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3) //Part3
     {
         char *word = command->args[0];
         char *color = command->args[1];
@@ -403,14 +405,14 @@ int process_command(struct command_t *command)
         char *buffer = strtok(mybuff, " ");
 
         while (buffer != NULL)
-        {
+        {   
             char *tempbuffer;
             strcpy(tempbuffer, buffer);
             size_t len = strlen(tempbuffer);
             char *lower = calloc(len + 1, sizeof(char));
             for (size_t i = 0; i < len; ++i)
             {
-                lower[i] = tolower((unsigned char)tempbuffer[i]);
+                lower[i] = tolower((char)tempbuffer[i]);
             }
 
             if (strcmp(lower, word) == 0)
@@ -423,19 +425,93 @@ int process_command(struct command_t *command)
                 changeColor(color, buffer);
             }
             */
+    /*
             else
             {
                 printf("%s ", buffer);
             }
             free(lower);
-
             buffer = strtok(NULL, " ");
         }
-		return SUCCESS;
+        return SUCCESS;
     }
+
+    */
     // Part4
 
     // Part5
+    if (strcmp(command->name, "kdiff") == 0)
+    {
+        char *fileOne = command->args[1];
+        char *fileTwo = command->args[2];
+        
+
+        int count_lines = 0;
+        char chr;
+        FILE *fptrOne = NULL;
+        int iOne = 0;
+        fptrOne = fopen(fileOne, "r");
+        chr = getc(fptrOne);
+
+        while (chr != EOF)
+        {
+            //Count whenever new line is encountered
+            if (chr == '\n')
+            {
+                count_lines = count_lines + 1;
+            }
+            //take next character from file.
+            chr = getc(fptrOne);
+        }
+        fclose(fptrOne);
+
+        fptrOne = fopen(fileOne, "r");
+        char linesOne[count_lines][222];
+
+        while (fgets(linesOne[iOne], 222, fptrOne))
+        {
+            linesOne[iOne][strlen(linesOne[iOne]) - 1] = '\0';
+            iOne++;
+        }
+
+        char linesTwo[count_lines][222];
+        FILE *fptrTwo = NULL;
+        int iTwo = 0;
+        fptrTwo = fopen(fileTwo, "r");
+        while (fgets(linesTwo[iTwo], 222, fptrTwo))
+        {
+            linesTwo[iTwo][strlen(linesTwo[iTwo]) - 1] = '\0';
+            iTwo++;
+        }
+        int counter = 0;
+        if (strcmp(command->args[0], "-a") == 0)
+        {
+            for (int i = 0; i < count_lines; i++)
+            {
+                if (strcmp(linesOne[i], linesTwo[i]) != 0)
+                {
+                    printf("%s:Line %i: %s \n", fileOne, i, linesOne[i]);
+                    printf("%s:Line %i: %s \n", fileTwo, i, linesTwo[i]);
+                    counter++;
+                }
+            }
+            if (counter > 0)
+            {
+                printf("%i different lines found \n", counter);
+            }
+            else
+            {
+                printf("2 The two text files are identical \n");
+            }
+        }
+        if (strcmp(command->args[0], "-b") == 0)
+        {
+        }
+        fclose(fptrOne);
+        fclose(fptrTwo);
+
+        return SUCCESS;
+    }
 
     // Part6
 
@@ -464,7 +540,7 @@ int process_command(struct command_t *command)
         command->args[command->arg_count - 1] = NULL;
 
         //execvp(command->name, command->args); // exec+args+path
-		// TODO: do your own exec with path resolving using execv()
+        // TODO: do your own exec with path resolving using execv()
         const char *path;
         path = getFilePath(command->name);
         execv(path, command->args);
@@ -477,7 +553,6 @@ int process_command(struct command_t *command)
             wait(0); // wait for child process to finish
         return SUCCESS;
     }
-
 
     printf("-%s: %s: command not found\n", sysname, command->name);
     return UNKNOWN;
@@ -535,10 +610,10 @@ char *readFile(char *document)
     FILE *fp;
     fp = fopen(document, "r");
 
-    char *buff = malloc(555);
+    char *buff = malloc(222);
     //fscanf(fp, "%s", buff);
 
-    fread(buff, 555, 1, fp);
+    fread(buff, 222, 1, fp);
     fclose(fp);
 
     return buff;
