@@ -12,9 +12,9 @@ const char *sysname = "seashell";
 char *getFilePath(char *cmd);
 void changeColor(char *color, char *word);
 char *readFile(char *document);
-int command_shortdir();
 void read_shortdir_file();
 void insert_shortdir(char *name, char *path);
+char *find_shortdir_path(char *name);
 void delete_shortdir(char *name);
 void print_shortdir();
 void update_shortdir_file();
@@ -333,6 +333,7 @@ int prompt(struct command_t *command)
 int process_command(struct command_t *command);
 int main()
 {
+    read_shortdir_file();
     while (1)
     {
         struct command_t *command = malloc(sizeof(struct command_t));
@@ -353,6 +354,7 @@ int main()
     printf("\n");
     return 0;
 }
+int command_shortdir(struct command_t *command);
 
 int process_command(struct command_t *command)
 {
@@ -373,9 +375,8 @@ int process_command(struct command_t *command)
             return SUCCESS;
         }
     }
-    else if (strcmp(command->name, "shortdir") == 0 && command->arg_count > 0) //Part2
+    else if (strcmp(command->name, "shortdir") == 0 && command->arg_count > 0)
         return command_shortdir(command);
-
     else if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3) //Part3
     {
         char *word = command->args[0];
@@ -541,7 +542,8 @@ int command_shortdir(struct command_t *command)
     else if (strcmp(command->args[0], "jump") == 0)
     {
         char *shortdirName = command->args[1];
-        char *path = getFilePath(shortdirName);
+        char *path = find_shortdir_path(shortdirName);
+        printf("%s", path);
         if (path != NULL)
             chdir(path);
         else
@@ -576,11 +578,10 @@ char *getFilePath(char *cmd)
     FILE *fp;
     fp = fopen("temp.txt", "r");
 
-    char *buff = malloc(255);
+    char *buff = (char*) malloc(250*sizeof(char));
     fscanf(fp, "%s", buff);
     fclose(fp);
     remove("temp.txt");
-
     return buff;
 }
 
@@ -605,9 +606,9 @@ void read_shortdir_file()
 // Insert or update shortdir - set
 void insert_shortdir(char *name, char *path)
 {
-    struct element *element = malloc(sizeof(element));
-    strcpy(element->name, name);
-    strcpy(element->path, path);
+    struct element *element_shrt = malloc(sizeof(element));
+    strcpy(element_shrt->name, name);
+    strcpy(element_shrt->path, path);
 
     int i;
     for (i = 0; i < list_shortdir->element_count; i++)
@@ -621,8 +622,8 @@ void insert_shortdir(char *name, char *path)
             return;
         }
     }
-    list_shortdir->element_list[list_shortdir->element_count++] = element;
-    printf("%s is set as an alias for %s\n", element->name, element->path);
+    list_shortdir->element_list[list_shortdir->element_count++] = element_shrt;
+    printf("%s is set as an alias for %s\n", element_shrt->name, element_shrt->path);
 }
 
 // Delete shortdir - del
@@ -670,12 +671,16 @@ char *find_shortdir_path(char *name)
 void update_shortdir_file()
 {
     FILE *fp;
-    fp = fopen("./shortdir.txt", "w");
+    fp = fopen("/home/turkusavran/Desktop/Comp304/operating-systems/Comp304/operating-systems/seashell-project/shortdir.txt", "w+");
+    if (fp == NULL){
+        printf("Could not open file\n");
+        return;
 
+    }
     int i;
     for (i = 0; i < list_shortdir->element_count; i++)
     {
-        fprintf(fp, "%s %s", list_shortdir->element_list[i]->name,
+        fprintf(fp, "%s %s\n", list_shortdir->element_list[i]->name,
                 list_shortdir->element_list[i]->path);
     }
     fclose(fp);
@@ -713,7 +718,8 @@ char *readFile(char *document)
     FILE *fp;
     fp = fopen(document, "r");
 
-    char *buff = malloc(222);
+   // char *buff = malloc(222);
+    char *buff = (char*) malloc(12*sizeof(char));
     //fscanf(fp, "%s", buff);
 
     fread(buff, 222, 1, fp);
