@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <time.h>
 
 const char *sysname = "seashell";
 char *getFilePath(char *cmd);
@@ -419,6 +421,49 @@ int process_command(struct command_t *command)
 
     // Part4
 
+    else if (strcmp(command->name, "goodMorning") == 0)
+    {
+        char *hourname = command->args[0];
+        char *buffer = strtok(hourname, ".");
+        char *hr = buffer;
+        char *min = strtok(NULL, ".");
+
+        char cmd[222] = " ";
+        strcat(cmd, min);
+        strcat(cmd, " ");
+
+        strcat(cmd, hr);
+        strcat(cmd, " ");
+
+        time_t timer = time(NULL);
+
+        struct tm t;
+        t = *localtime(&timer);
+
+        char day[22] = "";
+        sprintf(day, "%d", t.tm_mday);
+        char month[22] = "";
+        sprintf(month, "%d", t.tm_mon);
+        char dayweek[22] = "";
+        sprintf(dayweek, "%d", t.tm_wday);
+
+        strcat(cmd, day);
+        strcat(cmd, " ");
+        strcat(cmd, month);
+        strcat(cmd, " ");
+        strcat(cmd, dayweek);
+        strcat(cmd, " ");
+        strcat(cmd, "> temp.txt");
+        strcat(cmd, " ");
+
+        //strcat("crontab -e ", cmd);
+        printf("%s \n", cmd);
+
+        //remove("temp.txt");
+
+        return SUCCESS;
+    }
+
     // Part5
     else if (strcmp(command->name, "kdiff") == 0)
     {
@@ -493,6 +538,13 @@ int process_command(struct command_t *command)
     }
 
     // Part6
+
+    else if (strcmp(command->name, "whatTime?") == 0)
+    {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        printf("Time is %s", asctime(localtime(&tv.tv_sec)));
+    }
 
     pid_t pid = fork();
     if (pid == 0) // child
