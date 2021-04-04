@@ -479,12 +479,10 @@ int process_command(struct command_t *command)
 
         while (chr != EOF)
         {
-            //Count whenever new line is encountered
             if (chr == '\n')
             {
                 count_lines = count_lines + 1;
             }
-            //take next character from file.
             chr = getc(fptrOne);
         }
         fclose(fptrOne);
