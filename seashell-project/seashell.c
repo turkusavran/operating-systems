@@ -9,9 +9,15 @@
 #include <ctype.h>
 
 const char *sysname = "seashell";
-const char *getFilePath(char *cmd);
+char *getFilePath(char *cmd);
 void changeColor(char *color, char *word);
 char *readFile(char *document);
+int command_shortdir();
+void read_shortdir_file();
+void insert_shortdir(char *name, char *path);
+void delete_shortdir(char *name);
+void print_shortdir();
+void update_shortdir_file();
 
 enum return_codes
 {
@@ -30,6 +36,20 @@ struct command_t
     char *redirects[3];     // in/out redirection
     struct command_t *next; // for piping
 };
+
+struct element
+{
+    char name[50];
+    char path[100];
+} element;
+
+struct list
+{
+    struct element *element_list[100];
+    int element_count;
+} list;
+
+struct list *list_shortdir;
 /**
  * Prints a command struct
  * @param struct command_t *
@@ -340,10 +360,10 @@ int process_command(struct command_t *command)
     if (strcmp(command->name, "") == 0)
         return SUCCESS;
 
-    if (strcmp(command->name, "exit") == 0)
+    else if (strcmp(command->name, "exit") == 0)
         return EXIT;
 
-    if (strcmp(command->name, "cd") == 0)
+    else if (strcmp(command->name, "cd") == 0)
     {
         if (command->arg_count > 0)
         {
@@ -353,48 +373,10 @@ int process_command(struct command_t *command)
             return SUCCESS;
         }
     }
-    if (strcmp(command->name, "shortdir") == 0 && command->arg_count == 1) //Part2
-    {
-        r = chdir(command->args[0]);
-        if (r == -1)
-        {
-            printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
-        }
-        // shortdir set
-        if (strcmp(command->args[0], "set") == 0)
-        {
-            const char *path;
-            path = getenv("PATH");
-            char *shortname = command->args[1];
-        }
-        else if (strcmp(command->args[0], "jump") == 0)
-        {
-            const char *path;
-            path = getenv("PATH");
-            char *shortname = command->args[1];
-            //system(strcat(cd, shortnameValue));
-        }
-        else if (strcmp(command->args[0], "del") == 0)
-        {
-            const char *path;
-            path = getenv("PATH");
-            char *shortname = command->args[1];
-        }
-        else if (strcmp(command->args[0], "clear") == 0)
-        {
-            const char *path;
-            path = getenv("PATH");
-        }
-        else if (strcmp(command->args[0], "list") == 0)
-        {
-            const char *path;
-            path = getenv("PATH");
-        }
-        return SUCCESS;
-    }
+    else if (strcmp(command->name, "shortdir") == 0 && command->arg_count > 0) //Part2
+        return command_shortdir(command);
 
-    /*
-    if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3) //Part3
+    else if (strcmp(command->name, "highlight") == 0 && command->arg_count == 3) //Part3
     {
         char *word = command->args[0];
         char *color = command->args[1];
@@ -405,8 +387,8 @@ int process_command(struct command_t *command)
         char *buffer = strtok(mybuff, " ");
 
         while (buffer != NULL)
-        {   
-            char *tempbuffer;
+        {
+            char tempbuffer[100];
             strcpy(tempbuffer, buffer);
             size_t len = strlen(tempbuffer);
             char *lower = calloc(len + 1, sizeof(char));
@@ -425,7 +407,6 @@ int process_command(struct command_t *command)
                 changeColor(color, buffer);
             }
             */
-    /*
             else
             {
                 printf("%s ", buffer);
@@ -436,22 +417,19 @@ int process_command(struct command_t *command)
         return SUCCESS;
     }
 
-    */
     // Part4
 
     // Part5
-    if (strcmp(command->name, "kdiff") == 0)
+    else if (strcmp(command->name, "kdiff") == 0)
     {
         char *fileOne = command->args[1];
         char *fileTwo = command->args[2];
-        
 
         int count_lines = 0;
-        char chr;
-        FILE *fptrOne = NULL;
+        FILE *fptrOne;
         int iOne = 0;
         fptrOne = fopen(fileOne, "r");
-        chr = getc(fptrOne);
+        char chr = getc(fptrOne);
 
         while (chr != EOF)
         {
@@ -475,7 +453,7 @@ int process_command(struct command_t *command)
         }
 
         char linesTwo[count_lines][222];
-        FILE *fptrTwo = NULL;
+        FILE *fptrTwo;
         int iTwo = 0;
         fptrTwo = fopen(fileTwo, "r");
         while (fgets(linesTwo[iTwo], 222, fptrTwo))
@@ -504,6 +482,7 @@ int process_command(struct command_t *command)
                 printf("2 The two text files are identical \n");
             }
         }
+
         if (strcmp(command->args[0], "-b") == 0)
         {
         }
@@ -518,14 +497,6 @@ int process_command(struct command_t *command)
     pid_t pid = fork();
     if (pid == 0) // child
     {
-        /// This shows how to do exec with environ (but is not available on MacOs)
-        // extern char** environ; // environment variables
-        // execvpe(command->name, command->args, environ); // exec+args+path+environ
-
-        /// This shows how to do exec with auto-path resolve
-        // add a NULL argument to the end of args, and the name to the beginning
-        // as required by exec
-
         // increase args size by 2
         command->args = (char **)realloc(
             command->args, sizeof(char *) * (command->arg_count += 2));
@@ -539,9 +510,8 @@ int process_command(struct command_t *command)
         // set args[arg_count-1] (last) to NULL
         command->args[command->arg_count - 1] = NULL;
 
-        //execvp(command->name, command->args); // exec+args+path
         // TODO: do your own exec with path resolving using execv()
-        const char *path;
+        char *path;
         path = getFilePath(command->name);
         execv(path, command->args);
 
@@ -558,9 +528,45 @@ int process_command(struct command_t *command)
     return UNKNOWN;
 }
 
+// COMMAND FUNCTIONS
+int command_shortdir(struct command_t *command)
+{
+    if (strcmp(command->args[0], "set") == 0)
+    {
+        char path[100];
+        char *shortdirName = command->args[1];
+        getcwd(path, sizeof(path));
+        insert_shortdir(shortdirName, path);
+    }
+    else if (strcmp(command->args[0], "jump") == 0)
+    {
+        char *shortdirName = command->args[1];
+        char *path = getFilePath(shortdirName);
+        if (path != NULL)
+            chdir(path);
+        else
+            printf("Path not found.\n");
+    }
+    else if (strcmp(command->args[0], "del") == 0)
+    {
+        delete_shortdir(command->args[1]);
+    }
+    else if (strcmp(command->args[0], "clear") == 0)
+    {
+        list_shortdir->element_count = 0;
+    }
+    else if (strcmp(command->args[0], "list") == 0)
+    {
+        print_shortdir();
+    }
+
+    update_shortdir_file();
+    return SUCCESS;
+}
+
 // HELPER FUNCTIONS
 // Get the file path
-const char *getFilePath(char *cmd)
+char *getFilePath(char *cmd)
 {
     char innerCommand[100] = "which ";
     strcat(innerCommand, cmd);
@@ -576,6 +582,103 @@ const char *getFilePath(char *cmd)
     remove("temp.txt");
 
     return buff;
+}
+
+// Read shortdir file and save to list shortdir
+void read_shortdir_file()
+{
+    list_shortdir = malloc(sizeof(list));
+    list_shortdir->element_count = 0;
+    char name[50];
+    char path[100];
+    FILE *fp;
+    fp = fopen("./shortdir.txt", "r");
+
+    while (fscanf(fp, "%s %s", name, path) != EOF)
+    {
+        insert_shortdir(name, path);
+        list_shortdir->element_count++;
+    }
+    fclose(fp);
+}
+
+// Insert or update shortdir - set
+void insert_shortdir(char *name, char *path)
+{
+    struct element *element = malloc(sizeof(element));
+    strcpy(element->name, name);
+    strcpy(element->path, path);
+
+    int i;
+    for (i = 0; i < list_shortdir->element_count; i++)
+    {
+        // Update if already exists
+        if (strcmp(list_shortdir->element_list[i]->name, name) == 0)
+        {
+            strcpy(list_shortdir->element_list[i]->path, path);
+            printf("%s is set as an alias for %s\n", list_shortdir->element_list[i]->name,
+                   list_shortdir->element_list[i]->path);
+            return;
+        }
+    }
+    list_shortdir->element_list[list_shortdir->element_count++] = element;
+    printf("%s is set as an alias for %s\n", element->name, element->path);
+}
+
+// Delete shortdir - del
+void delete_shortdir(char *name)
+{
+    int i;
+    int count = list_shortdir->element_count;
+    for (i = 0; i < count; i++)
+    {
+        if (strcmp(list_shortdir->element_list[i]->name, name) == 0)
+        {
+            list_shortdir->element_list[i] = list_shortdir->element_list[--count];
+            printf("Short direction is removed.\n");
+            return;
+        }
+    }
+    printf("Short direction not found.\n");
+}
+
+// List shortdir
+void print_shortdir()
+{
+    int i;
+    for (i = 0; i < list_shortdir->element_count; i++)
+    {
+        printf("name: %s, path: %s\n", list_shortdir->element_list[i]->name,
+               list_shortdir->element_list[i]->path);
+    }
+}
+
+// Find shortdir path
+char *find_shortdir_path(char *name)
+{
+    int i;
+    for (i = 0; i < list_shortdir->element_count; i++)
+    {
+        if (strcmp(list_shortdir->element_list[i]->name, name) == 0)
+        {
+            return list_shortdir->element_list[i]->path;
+        }
+    }
+    return NULL;
+}
+// Update shortdir file
+void update_shortdir_file()
+{
+    FILE *fp;
+    fp = fopen("./shortdir.txt", "w");
+
+    int i;
+    for (i = 0; i < list_shortdir->element_count; i++)
+    {
+        fprintf(fp, "%s %s", list_shortdir->element_list[i]->name,
+                list_shortdir->element_list[i]->path);
+    }
+    fclose(fp);
 }
 
 // Change the given word into given color
