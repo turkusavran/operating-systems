@@ -595,7 +595,6 @@ int command_shortdir(struct command_t *command)
     {
         char *shortdirName = command->args[1];
         char *path = find_shortdir_path(shortdirName);
-        printf("%s", path);
         if (path != NULL)
             chdir(path);
         else
