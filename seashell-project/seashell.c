@@ -631,6 +631,13 @@ void delete_shortdir(char *name)
 {
     int i;
     int count = list_shortdir->element_count;
+    if (count==1) {
+        remove("shortdir.txt");
+        list_shortdir->element_count = 0;
+        printf("Short direction is removed.\n");
+        return;
+    }
+
     for (i = 0; i < count; i++)
     {
         if (strcmp(list_shortdir->element_list[i]->name, name) == 0)
@@ -640,7 +647,7 @@ void delete_shortdir(char *name)
             return;
         }
     }
-    printf("Short direction not found.\n");
+    printf("Short direction is not found.\n");
 }
 
 // List shortdir
