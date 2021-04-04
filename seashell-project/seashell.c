@@ -683,7 +683,6 @@ void delete_shortdir(char *name)
     int i;
     int count = list_shortdir->element_count;
     if (count==1) {
-        remove("shortdir.txt");
         list_shortdir->element_count = 0;
         printf("Short direction is removed.\n");
         return;
