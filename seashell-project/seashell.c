@@ -537,7 +537,6 @@ int process_command(struct command_t *command)
 
         return SUCCESS;
     }
-
     // Part6
 
     else if (strcmp(command->name, "whatTime?") == 0)
@@ -630,7 +629,7 @@ char *getFilePath(char *cmd)
     FILE *fp;
     fp = fopen("temp.txt", "r");
 
-    char *buff = (char*) malloc(250*sizeof(char));
+    char *buff = (char *)malloc(250 * sizeof(char));
     fscanf(fp, "%s", buff);
     fclose(fp);
     remove("temp.txt");
@@ -683,18 +682,12 @@ void delete_shortdir(char *name)
 {
     int i;
     int count = list_shortdir->element_count;
-    if (count==1) {
-        remove("shortdir.txt");
-        list_shortdir->element_count = 0;
-        printf("Short direction is removed.\n");
-        return;
-    }
 
     for (i = 0; i < count; i++)
     {
         if (strcmp(list_shortdir->element_list[i]->name, name) == 0)
         {
-            list_shortdir->element_list[i] = list_shortdir->element_list[--count];
+            list_shortdir->element_list[i] = list_shortdir->element_list[--list_shortdir->element_count];
             printf("Short direction is removed.\n");
             return;
         }
@@ -731,10 +724,10 @@ void update_shortdir_file()
 {
     FILE *fp;
     fp = fopen("/home/turkusavran/Desktop/Comp304/operating-systems/Comp304/operating-systems/seashell-project/shortdir.txt", "w+");
-    if (fp == NULL){
+    if (fp == NULL)
+    {
         printf("Could not open file\n");
         return;
-
     }
     int i;
     for (i = 0; i < list_shortdir->element_count; i++)
@@ -777,8 +770,8 @@ char *readFile(char *document)
     FILE *fp;
     fp = fopen(document, "r");
 
-   // char *buff = malloc(222);
-    char *buff = (char*) malloc(12*sizeof(char));
+    // char *buff = malloc(222);
+    char *buff = (char *)malloc(12 * sizeof(char));
     //fscanf(fp, "%s", buff);
 
     fread(buff, 222, 1, fp);
