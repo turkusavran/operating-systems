@@ -641,7 +641,7 @@ void read_shortdir_file()
     char name[50];
     char path[100];
     FILE *fp;
-    fp = fopen("./shortdir.txt", "r");
+    fp = fopen("shortdir.txt", "r");
 
     while (fscanf(fp, "%s %s", name, path) != EOF)
     {
@@ -720,7 +720,7 @@ char *find_shortdir_path(char *name)
 void update_shortdir_file()
 {
     FILE *fp;
-    fp = fopen("/home/turkusavran/Desktop/Comp304/operating-systems/Comp304/operating-systems/seashell-project/shortdir.txt", "w+");
+    fp = fopen("./shortdir.txt", "w+");
     if (fp == NULL)
     {
         printf("Could not open file\n");
