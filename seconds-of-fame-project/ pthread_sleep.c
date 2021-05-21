@@ -41,8 +41,6 @@ int pthread_sleep(double seconds)
     return res;
 }
 
-
-
 struct commentator
 {
     int commentatorID;     // id of the commentator 1 to n
@@ -55,9 +53,9 @@ struct commentator
 
 struct moderator
 {
-    char status;           // status of the moderator. it can waits commentators answers 'W' or ask questions 'A'
+    char status;        // status of the moderator. it can waits commentators answers 'W' or ask questions 'A'
+    int question = 0;   // current question
 };
-
 
 std::queue<commentator> micQueue; // queue for waiting commentators to answer
 
@@ -70,10 +68,15 @@ int q = 3;   // number of questions
 struct commentator l[n];   // array for the commentators
 pthread_cond_t threads[n]; // array for the commentators' threads
 
+// Helper functions
 void *commentatorExec(void *point); // single commentator action
 void *moderatorExec(void *point);   // moderator action
 float getSpeakTime();               // calculates random speak time between 1 and t
+
+// Helper parameters
 int speaker = -1;                   // -1 is the moderator, 0 to n is commentators, -9 is idle.
+bool theEnd = false;                // when it is true it is end of the program
+int currentQuestionNum = 0;         // tracks which question we are discussing
 
 // creates pthreads
 int pthread_create(
@@ -86,34 +89,57 @@ int pthread_create(
 void *commentatorExec(void *point, int i) //  single commentator action
 {
     float prob = rand() % 10;
-    if (p*10>=prob)
+    if (p * 10 >= prob)
     {
         // commentator wants to answer
         commentator c = l[i];
         c.status = 'W';
-        while(speaker!=-9){
+        while (speaker != -9)
+        {
             // waits until microphone become available
             pthread_sleep(1);
         }
         // its time to speak
         speaker = i;
-        c.status='S';
+        c.status = 'S';
         pthread_sleep(getSpeakTime());
         speaker = -9;
-        c.status='I';
-
+        c.status = 'I';
     }
-    else{
-        // commentator won't answer
-        
-    }
-    
 }
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
 void *moderatorExec(void *point); //   moderator action
 {
     // checks if all comentators have 'I' idle status to ask next question
+    pthread_sleep(2);
+    bool b = true;
+    while (b)
+    {
+        pthread_sleep(1);
+        bool readyToGo = true;
+        for (size_t i = 0; i < n; i++)
+        {
+            commentator c = l[i];
+            if (c.status = !'I')
+            {
+                readyToGo = false;
+            }
+        }
+        if (readyToGo)
+        {
+            b = false;
+        }   
+    }
+
+    // TODO: should ask the new question
+    if (currentQuestionNum < q)
+    {
+        currentQuestionNum++;
+    }
+    else{
+        theEnd = true;
+    }
 }
 
 double getSpeakTime()
@@ -125,7 +151,7 @@ double getSpeakTime()
 
 int main()
 {
-// TODO: Yukarıda oluşturduğumuz exec action functionları burada kullanmamız lazım
+    // TODO: Yukarıda oluşturduğumuz exec action functionları burada kullanmamız lazım
 
     pthread_t threads[n];
     int tn;
@@ -135,10 +161,8 @@ int main()
         c.commentatorID = tn;
         c.status = 'I';
         l[tn] = c;
-        pthread_create(&threads[tn], NULL, commentatorExec, (void*) tn, (int) tn);
+        pthread_create(&threads[tn], NULL, commentatorExec, (void *)tn, (int)tn);
     }
-
-
 
     for (tn = 0; tn < n; tn++)
     {
