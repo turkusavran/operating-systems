@@ -70,10 +70,10 @@ int q = 3;   // number of questions
 struct commentator l[n];   // array for the commentators
 pthread_cond_t threads[n]; // array for the commentators' threads
 
-void *commentatorExec(void *p); // single commentator action
-void *moderatorExec(void *p);   // moderator action
-float getSpeakTime();           // calculates random speak time between 1 and t
-int speaker = -1;               // 0 is the moderator, 1 to n is commentators
+void *commentatorExec(void *point); // single commentator action
+void *moderatorExec(void *point);   // moderator action
+float getSpeakTime();               // calculates random speak time between 1 and t
+int speaker = -1;                   // -1 is the moderator, 0 to n is commentators, -9 is idle.
 
 // creates pthreads
 int pthread_create(
@@ -83,19 +83,44 @@ int pthread_create(
     void *);
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
-void *commentatorExec(void *p) //  single commentator action
+void *commentatorExec(void *point, int i) //  single commentator action
 {
+    float prob = rand() % 10;
+    if (p*10>=prob)
+    {
+        // commentator wants to answer
+        commentator c = l[i];
+        c.status = 'W';
+        while(speaker!=-9){
+            // waits until microphone become available
+            pthread_sleep(1);
+        }
+        // its time to speak
+        speaker = i;
+        c.status='S';
+        pthread_sleep(getSpeakTime());
+        speaker = -9;
+        c.status='I';
+
+    }
+    else{
+        // commentator won't answer
+        
+    }
+    
 }
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
-void *moderatorExec(void *p); //   moderator action
+void *moderatorExec(void *point); //   moderator action
 {
+    // checks if all comentators have 'I' idle status to ask next question
 }
 
-float getSpeakTime()
+double getSpeakTime()
 {
     srand(time(NULL));
-    int speakTime = rand() % t + 1; // random speak time
+    double speakTime = rand() % t + 1; // random speak time
+    return speakTime;
 }
 
 int main()
@@ -107,10 +132,10 @@ int main()
     for (tn = 0; tn < n; tn++)
     {
         commentator c;
-        c.commentatorID = i;
+        c.commentatorID = tn;
         c.status = 'I';
-        l[i] = c;
-        pthread_create(&threads[tn], NULL, commentatorExec, NULL);
+        l[tn] = c;
+        pthread_create(&threads[tn], NULL, commentatorExec, (void*) tn, (int) tn);
     }
 
 
