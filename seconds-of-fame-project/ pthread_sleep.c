@@ -41,6 +41,8 @@ int pthread_sleep(double seconds)
     return res;
 }
 
+
+
 struct commentator
 {
     int commentatorID;     // id of the commentator 1 to n
@@ -51,6 +53,12 @@ struct commentator
     pthread_mutex_t commentator_mutex;
 };
 
+struct moderator
+{
+    char status;           // status of the moderator. it can waits commentators answers 'W' or ask questions 'A'
+};
+
+
 std::queue<commentator> micQueue; // queue for waiting commentators to answer
 
 // INPUT PARAMETERS
@@ -60,34 +68,39 @@ int n = 1;   // number of commentators
 int q = 3;   // number of questions
 
 struct commentator l[n];   // array for the commentators
-pthread_cond_t threads[n]; // array for commentators' threads
+pthread_cond_t threads[n]; // array for the commentators' threads
 
-void *commentatorExec(void *p); //  single commentator action
-void *moderatorExec(void *p);   //   moderator action
-
-int speaker = -1 // 0 is the moderator, 1 to n is commentators
-              srand(time(NULL));
-int speakTime = rand() % t + 1;
+void *commentatorExec(void *p); // single commentator action
+void *moderatorExec(void *p);   // moderator action
+float getSpeakTime();           // calculates random speak time between 1 and t
+int speaker = -1;               // 0 is the moderator, 1 to n is commentators
 
 // creates pthreads
-int pthread_create(pthread_t *,
-                   const pthread_attr_t *,
-                   void *(*start_routine)(void *),
-                   void *);
+int pthread_create(
+    pthread_t *,
+    const pthread_attr_t *,
+    void *(*start_routine)(void *),
+    void *);
 
-// TODO:
+// TODO: BURASI ONEMLI ASIL IS BURADA
 void *commentatorExec(void *p) //  single commentator action
 {
 }
 
-// TODO:
+// TODO: BURASI ONEMLI ASIL IS BURADA
 void *moderatorExec(void *p); //   moderator action
 {
 }
 
+float getSpeakTime()
+{
+    srand(time(NULL));
+    int speakTime = rand() % t + 1; // random speak time
+}
 
 int main()
 {
+// TODO: Yukarıda oluşturduğumuz exec action functionları burada kullanmamız lazım
 
     pthread_t threads[n];
     int tn;
@@ -99,6 +112,9 @@ int main()
         l[i] = c;
         pthread_create(&threads[tn], NULL, commentatorExec, NULL);
     }
+
+
+
     for (tn = 0; tn < n; tn++)
     {
         pthread_join(threads[tn], NULL);
