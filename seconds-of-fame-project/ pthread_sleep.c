@@ -9,14 +9,16 @@
  * updated by Muhammed Nufail Farooqi
  * updated by Fahrican Kosar
  */
-int
-pthread_sleep(double seconds){
+int pthread_sleep(double seconds)
+{
     pthread_mutex_t mutex;
     pthread_cond_t conditionvar;
-    if(pthread_mutex_init(&mutex,NULL)){
+    if (pthread_mutex_init(&mutex, NULL))
+    {
         return -1;
     }
-    if(pthread_cond_init(&conditionvar,NULL)){
+    if (pthread_cond_init(&conditionvar, NULL))
+    {
         return -1;
     }
 
@@ -37,4 +39,69 @@ pthread_sleep(double seconds){
 
     //Upon successful completion, a value of zero shall be returned
     return res;
+}
+
+struct commentator
+{
+    int commentatorID;     // id of the commentator 1 to n
+    char status;           // status of the commentator. it can waits on queue 'Q', speaks 'S' or just waits idle 'I'
+    time_t requestTime;    // time when the commentator is joins the queue
+    time_t execTime;       // time when the commentator leaves the queue
+    time_t turnaroundTime; // execTime-requestTime
+    pthread_mutex_t commentator_mutex;
+};
+
+std::queue<commentator> micQueue; // queue for waiting commentators to answer
+
+// INPUT PARAMETERS
+int t = 10;  // maximum possible speak time
+int p = 0.8; // answering probability
+int n = 1;   // number of commentators
+int q = 3;   // number of questions
+
+struct commentator l[n];   // array for the commentators
+pthread_cond_t threads[n]; // array for commentators' threads
+
+void *commentatorExec(void *p); //  single commentator action
+void *moderatorExec(void *p);   //   moderator action
+
+int speaker = -1 // 0 is the moderator, 1 to n is commentators
+              srand(time(NULL));
+int speakTime = rand() % t + 1;
+
+// creates pthreads
+int pthread_create(pthread_t *,
+                   const pthread_attr_t *,
+                   void *(*start_routine)(void *),
+                   void *);
+
+// TODO:
+void *commentatorExec(void *p) //  single commentator action
+{
+}
+
+// TODO:
+void *moderatorExec(void *p); //   moderator action
+{
+}
+
+
+int main()
+{
+
+    pthread_t threads[n];
+    int tn;
+    for (tn = 0; tn < n; tn++)
+    {
+        commentator c;
+        c.commentatorID = i;
+        c.status = 'I';
+        l[i] = c;
+        pthread_create(&threads[tn], NULL, commentatorExec, NULL);
+    }
+    for (tn = 0; tn < n; tn++)
+    {
+        pthread_join(threads[tn], NULL);
+    }
+    return 0;
 }
