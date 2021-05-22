@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <queue>
 
 /**
  * pthread_sleep takes an integer number of seconds to pause the current thread
@@ -53,17 +54,17 @@ struct commentator
 
 struct moderator
 {
-    char status;        // status of the moderator. it can waits commentators answers 'W' or ask questions 'A'
-    int question = 0;   // current question
+    char status;      // status of the moderator. it can waits commentators answers 'W' or ask questions 'A'
+    int question = 0; // current question
 };
 
 std::queue<commentator> micQueue; // queue for waiting commentators to answer
 
 // INPUT PARAMETERS
-int t = 10;  // maximum possible speak time
-int p = 0.8; // answering probability
-int n = 1;   // number of commentators
-int q = 3;   // number of questions
+int t = 10;      // maximum possible speak time
+int p = 0.8;     // answering probability
+const int n = 1; // number of commentators
+int q = 3;       // number of questions
 
 struct commentator l[n];   // array for the commentators
 pthread_cond_t threads[n]; // array for the commentators' threads
@@ -74,9 +75,9 @@ void *moderatorExec(void *point);   // moderator action
 float getSpeakTime();               // calculates random speak time between 1 and t
 
 // Helper parameters
-int speaker = -1;                   // -1 is the moderator, 0 to n is commentators, -9 is idle.
-bool theEnd = false;                // when it is true it is end of the program
-int currentQuestionNum = 0;         // tracks which question we are discussing
+int speaker = -1;           // -1 is the moderator, 0 to n is commentators, -9 is idle.
+bool theEnd = false;        // when it is true it is end of the program
+int currentQuestionNum = 0; // tracks which question we are discussing
 
 // creates pthreads
 int pthread_create(
@@ -109,7 +110,7 @@ void *commentatorExec(void *point, int i) //  single commentator action
 }
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
-void *moderatorExec(void *point); //   moderator action
+void *moderatorExec(void *point) //   moderator action
 {
     // checks if all comentators have 'I' idle status to ask next question
     pthread_sleep(2);
@@ -129,7 +130,7 @@ void *moderatorExec(void *point); //   moderator action
         if (readyToGo)
         {
             b = false;
-        }   
+        }
     }
 
     // TODO: should ask the new question
@@ -137,12 +138,13 @@ void *moderatorExec(void *point); //   moderator action
     {
         currentQuestionNum++;
     }
-    else{
+    else
+    {
         theEnd = true;
     }
 }
 
-double getSpeakTime()
+float getSpeakTime()
 {
     srand(time(NULL));
     double speakTime = rand() % t + 1; // random speak time
