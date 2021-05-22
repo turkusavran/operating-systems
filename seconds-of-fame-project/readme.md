@@ -7,7 +7,7 @@ Seashell is a shell with additional user-added commands.
 --compile
 
 ```bash
-gcc main.c -o ./main
+gcc main.cpp -o ./main
 ```
 
 --run
