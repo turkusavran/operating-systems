@@ -107,6 +107,7 @@ void *commentatorExec(void *point, int i) //  single commentator action
         speaker = -9;
         c.status = 'I';
     }
+    return 0;
 }
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
@@ -142,6 +143,7 @@ void *moderatorExec(void *point) //   moderator action
     {
         theEnd = true;
     }
+    return 0;
 }
 
 float getSpeakTime()
@@ -163,7 +165,7 @@ int main()
         c.commentatorID = tn;
         c.status = 'I';
         l[tn] = c;
-        pthread_create(&threads[tn], NULL, commentatorExec, (void *)tn, (int)tn);
+        pthread_create(&threads[tn], NULL, commentatorExec, (void *)tn);
     }
 
     for (tn = 0; tn < n; tn++)
