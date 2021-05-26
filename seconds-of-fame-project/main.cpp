@@ -168,7 +168,7 @@ int main()
         c.status = 'I';
         commentators[tn] = c;
         pthread_create(&threads[tn], NULL, commentatorExec, (void *) tn);
-        pthread_exit(0);
+       
     }
 
     for (tn = 0; tn < n; tn++)
