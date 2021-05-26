@@ -62,15 +62,15 @@ std::queue<commentator> micQueue; // queue for waiting commentators to answer
 
 // INPUT PARAMETERS
 int t = 10;      // maximum possible speak time
-int p = 0.8;     // answering probability
+float p = 0.8;     // answering probability
 const int n = 1; // number of commentators
-int q = 3;       // number of questions
+int q = 3;    // number of questions
 
-struct commentator l[n];   // array for the commentators
+struct commentator commentators[n];   // array for the commentators
 pthread_cond_t threads[n]; // array for the commentators' threads
 
 // Helper functions
-void *commentatorExec(void *point); // single commentator action
+void *commentatorExec(void *i); // single commentator action
 void *moderatorExec(void *point);   // moderator action
 float getSpeakTime();               // calculates random speak time between 1 and t
 
@@ -80,34 +80,36 @@ bool theEnd = false;        // when it is true it is end of the program
 int currentQuestionNum = 0; // tracks which question we are discussing
 
 // creates pthreads
-int pthread_create(
+/*int pthread_create(
     pthread_t *,
     const pthread_attr_t *,
     void *(*start_routine)(void *),
-    void *);
+    void *);*/
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
-void *commentatorExec(void *point, int i) //  single commentator action
+void *commentatorExec(void *i) //  single commentator action
 {
     float prob = rand() % 10;
+    printf("%f",prob);
+    
     if (p * 10 >= prob)
     {
         // commentator wants to answer
-        commentator c = l[i];
+        commentator c = commentators[(int) i];
         c.status = 'W';
-        while (speaker != -9)
+        /*while (speaker != -9)
         {
             // waits until microphone become available
             pthread_sleep(1);
-        }
+        }*/
         // its time to speak
-        speaker = i;
+        speaker = (int) i;
         c.status = 'S';
         pthread_sleep(getSpeakTime());
         speaker = -9;
         c.status = 'I';
     }
-    return 0;
+    pthread_exit(0);
 }
 
 // TODO: BURASI ONEMLI ASIL IS BURADA
@@ -122,7 +124,7 @@ void *moderatorExec(void *point) //   moderator action
         bool readyToGo = true;
         for (size_t i = 0; i < n; i++)
         {
-            commentator c = l[i];
+            commentator c = commentators[i];
             if (c.status = !'I')
             {
                 readyToGo = false;
@@ -143,7 +145,8 @@ void *moderatorExec(void *point) //   moderator action
     {
         theEnd = true;
     }
-    return 0;
+
+    pthread_exit(0);
 }
 
 float getSpeakTime()
@@ -156,16 +159,16 @@ float getSpeakTime()
 int main()
 {
     // TODO: Yukarıda oluşturduğumuz exec action functionları burada kullanmamız lazım
-
     pthread_t threads[n];
-    int tn;
+    int tn = 3;
     for (tn = 0; tn < n; tn++)
     {
         commentator c;
         c.commentatorID = tn;
         c.status = 'I';
-        l[tn] = c;
-        pthread_create(&threads[tn], NULL, commentatorExec, (void *)tn);
+        commentators[tn] = c;
+        pthread_create(&threads[tn], NULL, commentatorExec, (void *) tn);
+        pthread_exit(0);
     }
 
     for (tn = 0; tn < n; tn++)

@@ -7,7 +7,7 @@ Seashell is a shell with additional user-added commands.
 --compile
 
 ```bash
-g++ main.cpp -lpthread -o ./main
+g++ main.cpp -lpthread -fpermissive -o ./main
 ```
 
 --run
