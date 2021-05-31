@@ -169,7 +169,7 @@ float getSpeakTime(int t)
 }
 
 // Helper function to take inputs
-void inputCommands(int argc, char *argv[], double &p, int &n, int &q, int &t)
+void inputCommands(int argc, char *argv[], double p, int &n, int &q, int &t)
 {
     int cmd;
 
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 {
 
     // takes input parameters
-    //inputCommands(argc, argv, p, n, q, t);
+    inputCommands(argc, argv, p, n, q, t);
 
     pthread_t modThread[q];
 

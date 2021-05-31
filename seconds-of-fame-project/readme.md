@@ -13,5 +13,6 @@ g++ main.cpp -lpthread -fpermissive -o ./main
 --run
 
 ```bash
-./main
+./main -p 0.3 -n 6 -q 7 -t 10 
 ```
+with the desired parameters
