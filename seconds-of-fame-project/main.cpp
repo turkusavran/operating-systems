@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
         printf("Commentator thread %d created \n", i + 1);
         pthread_create(&commentatorThread[i], NULL, commentatorExec, NULL);
     }
+    pthread_sleep(2);
     pthread_create(&moderatorThread, NULL, &moderatorExec, NULL);
 
     for(int i = 0 ; i < n+1 ; i++){
@@ -90,8 +91,11 @@ void *commentatorExec(void *ptr)
 {
     printf("hello\n");
     for (int i = 0 ; i < q ; i++){
+        //pthread_mutex_lock(&questionLock);
         pthread_cond_wait(&questionCond, &questionLock);
-        
+        pthread_mutex_unlock(&questionLock);
+
+        printf("aloha\n");
         float prob = rand() % 10;
         commentator++;
         //if (p * 10 >= prob)
@@ -102,7 +106,6 @@ void *commentatorExec(void *ptr)
             printf("In COMMENTATOR %d \n", commentator);
 
             //push to queue
-            printf("%d\n", commentator);
             if(commentator == n) {
                 //her sey pushlandi
                 printf("Hello");
@@ -110,23 +113,25 @@ void *commentatorExec(void *ptr)
             }
             //wait for you can speak signal
             pthread_cond_wait(&speakCond, &speakLock);
+            pthread_mutex_unlock(&speakLock);
 
             //speak
             printf("---Commentator %d speaks \n", commentator);
             pthread_sleep(getSpeakTime(t));
 
             //konusmam bitti signal yolla
-            pthread_cond_wait(&endSpeakCond, &endSpeakLock);
+            pthread_cond_signal(&endSpeakCond);
         }
         else
         {
             printf("---Commentator %d doesn't speak \n", commentator);
         }
         
+
         printf("end of the commentator %d \n", commentator);
         if (commentator == n)
         {
-            speaker = 0;
+            printf("commantator is n\n");
             commentator = 0;
             printf("\n\n");
         }
@@ -145,13 +150,17 @@ void *moderatorExec(void *ptr) // moderator action
 
         // her seyin pushalnmasini bekle
         pthread_cond_wait(&queueCond, &queueLock);
+        pthread_mutex_unlock(&queueLock);
         // queue yu sirayla popla while da
         for(int i = 0 ; i < speaker ; i++){
+            printf("aloha22\n");
             // you can speak signal
             pthread_cond_signal(&speakCond);
             // konusmam bitti signal bekle
             pthread_cond_wait(&endSpeakCond, &endSpeakLock);
+            pthread_mutex_unlock(&endSpeakLock);
         }
+        speaker = 0;
         //her sey bitti sinyalini bekle sonraki soruya gec
 
     }
