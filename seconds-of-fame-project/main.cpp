@@ -9,61 +9,30 @@
 #include <fstream>
 #include <unistd.h>
 
-/**
- * pthread_sleep takes an integer number of seconds to pause the current thread
- * original by Yingwu Zhu
- * updated by Muhammed Nufail Farooqi
- * updated by Fahrican Kosar
- */
+// Function declarations
+int pthread_sleep(double seconds);
+void *moderatorExec(void *ptr); // moderator action
+float getSpeakTime(int t);      // calculates random speak time between 1 and t
+void *commentatorExec(void *ptr);
+void inputCommands(int argc, char *argv[], double p, int &n, int &q, int &t);
 
-int pthread_sleep(double seconds)
-{
-    pthread_mutex_t mutex;
-    pthread_cond_t conditionvar;
-    if (pthread_mutex_init(&mutex, NULL))
-    {
-        return -1;
-    }
-    if (pthread_cond_init(&conditionvar, NULL))
-    {
-        return -1;
-    }
-
-    struct timeval tp;
-    struct timespec timetoexpire;
-    // When to expire is an absolute time, so get the current time and add
-    // it to our delay time
-    gettimeofday(&tp, NULL);
-    long new_nsec = tp.tv_usec * 1000 + (seconds - (long)seconds) * 1e9;
-    timetoexpire.tv_sec = tp.tv_sec + (long)seconds + (new_nsec / (long)1e9);
-    timetoexpire.tv_nsec = new_nsec % (long)1e9;
-
-    pthread_mutex_lock(&mutex);
-    int res = pthread_cond_timedwait(&conditionvar, &mutex, &timetoexpire);
-    pthread_mutex_unlock(&mutex);
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&conditionvar);
-
-    //Upon successful completion, a value of zero shall be returned
-    return res;
-}
-
-// DEFAULT INPUT PARAMETERS
+// Default input parameters
 float p = 0.8; // answering probability
 int n = 5;     // number of commentators
 int q = 3;     // number of questions
 int t = 10;    // maximum possible speak time
 
-// Helper parameters
+// Global variables
 int speaker = -1;           // -1 is the moderator, 0 to n is commentators, -9 is idle.
 bool theEnd = false;        // when it is true it is end of the program
 int currentQuestionNum = 0; // tracks which question we are discussing
 std::queue<int> micQueue;   // queue for waiting commentators to answer
-int commentatorID = 1;
+int commentatorID = 0;
 pthread_mutex_t speakerLock; // lock for the speakers
 bool commEnd = false;
 pthread_mutex_t question_mutex; // lock for the next question
 
+// Structures
 struct commentator
 {
     int commentatorID;     // id of the commentator 1 to n
@@ -76,25 +45,44 @@ struct commentator
 
 struct moderator
 {
-    char status;      // status of the moderator. it can waits commentators answers 'W' or ask questions 'A'
+    char status;      // status of the moderator. it can wait commentators answers 'W' or ask questions 'A'
     int question = 0; // current question
 };
 
-// Helper functions
-// void *commentatorExec(void *i, int t, double p); // single commentator action
-//void *commentatorExec(int id, double p, int t); // single commentator action
-void *moderatorExec(void *ptr); // moderator action
-float getSpeakTime(int t);      // calculates random speak time between 1 and t
-void *commentatorExec(void *ptr);
+// Main
+int main(int argc, char *argv[])
+{
+    pthread_t moderator_thread;
+    
+    // takes input parameters
+    inputCommands(argc, argv, p, n, q, t);
+    pthread_t commentatorThread[n];
+    printf("Total %d Commentators \n", n);
+    printf("Total %d Questions \n \n", q);
+
+    //pthread_mutex_unlock(&speakerLock);
+    //pthread_mutex_unlock(&question_mutex);
+    
+    pthread_create(&moderator_thread, NULL, moderatorExec, NULL);
+    //moderatorExec(NULL);
+    for (int i = 0; i < n; i++) 
+    {
+        printf("Commentator thread %d created \n", i + 1);
+        pthread_create(&commentatorThread[i], NULL, commentatorExec, NULL);
+    }
+    //pthread_mutex_unlock(&lock2);
+
+    // wait for commentator threads in moderator
+    if (currentQuestionNum == q)
+    {
+        printf("Program is finished!\n");
+        return 1;
+    }
+}
 
 void *commentatorExec(void *ptr) //  single commentator action
 {
-    /*
-    // randomize the commentators
-    double sleepTime = ((double) rand() / (RAND_MAX));
-    pthread_sleep(sleepTime * 2);
-    */
-
+    for (int i = 0 ; i < q ; i++){
     pthread_mutex_lock(&speakerLock);
     float prob = rand() % 10;
 
@@ -112,12 +100,7 @@ void *commentatorExec(void *ptr) //  single commentator action
         printf("---Commentator %d DON'T speaks \n", commentatorID + 1);
     }
     commentatorID++;
-    /*
-        printf("---In commentator lock released:\n");
-        //pthread_mutex_lock(&iter_lock);
-        printf("---In iter_lock in commentator:\n");
-        */
-
+    
     //pthread_mutex_unlock(&iter_lock);
     printf("end of the commentator %d \n", commentatorID);
     // exit(0);
@@ -128,52 +111,31 @@ void *commentatorExec(void *ptr) //  single commentator action
         printf("\n\n");
     }
     pthread_mutex_unlock(&speakerLock);
-
+    }
     return NULL;
+    //pthread_exit(0);
 }
 
-void *moderatorExec(void *ptr) //   moderator action
+void *moderatorExec(void *ptr) // moderator action
 {               
     printf("DEBUG 1 \n");
 
     for (int i = 0; i < q; i++)
     {
-        printf("DEBUG 2 \n");
-
         pthread_mutex_lock(&question_mutex);
-        pthread_t thread[n];
+        printf("DEBUG 2 \n");
+        pthread_t commentatorThread[n];
+       
         printf("DEBUG 3 \n");
 
-            commEnd = false;
-            commentatorID = 0;
-            //pthread_mutex_lock(&speakerLock);
-            printf("ask question %d \n", currentQuestionNum + 1);
-            currentQuestionNum++;
-            //printf("+++In iter_lock in moderator:\n");
-            //pthread_mutex_unlock(&speakerLock);
-
-            //pthread_mutex_lock(&iter_lock);
-            //printf("+++Time to iterate question. \n");
-            // waits for new question signal from commentator
-            //pthread_cond_wait(&new_question, &iter_lock);
-
-            //pthread_mutex_unlock(&iter_lock);
-            for (int i = 0; i < n; i++)
-            {
-                printf("Commentator thread %d created \n", i + 1);
-                pthread_create(&thread[i], NULL, commentatorExec, NULL);
-            }
-        
+        commEnd = false;
+        commentatorID = 0;
+        //pthread_mutex_lock(&speakerLock);
+        printf("ask question %d \n", currentQuestionNum + 1);
+        currentQuestionNum++;
     }
 
-    /*
-    pthread_mutex_lock(&question_mutex);
-    // commmentator joinle
-
-    pthread_mutex_unlock(&question_mutex);
-    */
-
-    return NULL;
+    pthread_exit(0);
 }
 
 // returns a random double value speaktime
@@ -213,33 +175,44 @@ void inputCommands(int argc, char *argv[], double p, int &n, int &q, int &t)
             exit(EXIT_FAILURE);
         }
     }
-    return NULL;
+    //return NULL;
 }
 
-int main(int argc, char *argv[])
+/**
+ * pthread_sleep takes an integer number of seconds to pause the current thread
+ * original by Yingwu Zhu
+ * updated by Muhammed Nufail Farooqi
+ * updated by Fahrican Kosar
+ */
+
+int pthread_sleep(double seconds)
 {
-
-    // takes input parameters
-    inputCommands(argc, argv, p, n, q, t);
-
-    pthread_t modThread[1];
-
-    printf("Total %d Commentators \n", n);
-    printf("Total %d Questions \n \n", q);
-
-    pthread_mutex_unlock(&speakerLock);
-    pthread_mutex_unlock(&question_mutex);
-    
-    pthread_create(&modThread[0], NULL, moderatorExec, NULL);
-    //moderatorExec(NULL);
-
-
-    //pthread_mutex_unlock(&lock2);
-
-    // wait for commentator threads in moderator
-    if (currentQuestionNum == q)
+    pthread_mutex_t mutex;
+    pthread_cond_t conditionvar;
+    if (pthread_mutex_init(&mutex, NULL))
     {
-        printf("Program is finished!\n");
-        return 1;
+        return -1;
     }
+    if (pthread_cond_init(&conditionvar, NULL))
+    {
+        return -1;
+    }
+
+    struct timeval tp;
+    struct timespec timetoexpire;
+    // When to expire is an absolute time, so get the current time and add
+    // it to our delay time
+    gettimeofday(&tp, NULL);
+    long new_nsec = tp.tv_usec * 1000 + (seconds - (long)seconds) * 1e9;
+    timetoexpire.tv_sec = tp.tv_sec + (long)seconds + (new_nsec / (long)1e9);
+    timetoexpire.tv_nsec = new_nsec % (long)1e9;
+
+    pthread_mutex_lock(&mutex);
+    int res = pthread_cond_timedwait(&conditionvar, &mutex, &timetoexpire);
+    pthread_mutex_unlock(&mutex);
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&conditionvar);
+
+    //Upon successful completion, a value of zero shall be returned
+    return res;
 }
