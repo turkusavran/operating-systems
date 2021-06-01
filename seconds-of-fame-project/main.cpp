@@ -25,15 +25,17 @@ int t = 10;    // maximum possible speak time
 // Global variables
 int speaker = -1;           // -1 is the moderator, 0 to n is commentators, -9 is idle.
 bool theEnd = false;        // when it is true it is end of the program
-int currentQuestionNum = 0; // tracks which question we are discussing
-std::queue<int> micQueue;   // queue for waiting commentators to answer
+int currentQuestionNum = 0; // tracks which question we are discussing  // queue for waiting commentators to answer
 int commentatorID = 0;
 pthread_mutex_t speakerLock; // lock for the speakers
-bool commEnd = false;
-pthread_mutex_t question_mutex; // lock for the next question
+pthread_mutex_t questionLock; // lock for the next question
+pthread_cond_t questionCond;
+
+// Queues
+//std::queue<Commentator> answerQueue;
 
 // Structures
-struct commentator
+struct Commentator
 {
     int commentatorID;     // id of the commentator 1 to n
     char status;           // status of the commentator. it can waits on queue 'Q', speaks 'S' or just waits idle 'I'
@@ -43,7 +45,7 @@ struct commentator
     pthread_mutex_t commentator_mutex = speakerLock;
 };
 
-struct moderator
+struct Moderator
 {
     char status;      // status of the moderator. it can wait commentators answers 'W' or ask questions 'A'
     int question = 0; // current question
@@ -52,7 +54,7 @@ struct moderator
 // Main
 int main(int argc, char *argv[])
 {
-    pthread_t moderator_thread;
+    pthread_t moderatorThread;
     
     // takes input parameters
     inputCommands(argc, argv, p, n, q, t);
@@ -60,57 +62,57 @@ int main(int argc, char *argv[])
     printf("Total %d Commentators \n", n);
     printf("Total %d Questions \n \n", q);
 
-    //pthread_mutex_unlock(&speakerLock);
-    //pthread_mutex_unlock(&question_mutex);
+    pthread_cond_init(&questionCond, NULL);
+    pthread_mutex_init(&questionLock, NULL);
+    pthread_mutex_init(&speakerLock, NULL);
     
-    pthread_create(&moderator_thread, NULL, moderatorExec, NULL);
-    //moderatorExec(NULL);
+    pthread_create(&moderatorThread, NULL, &moderatorExec, NULL);
     for (int i = 0; i < n; i++) 
     {
         printf("Commentator thread %d created \n", i + 1);
         pthread_create(&commentatorThread[i], NULL, commentatorExec, NULL);
     }
-    //pthread_mutex_unlock(&lock2);
 
-    // wait for commentator threads in moderator
-    if (currentQuestionNum == q)
-    {
-        printf("Program is finished!\n");
-        return 1;
-    }
+    return 0;
 }
 
-void *commentatorExec(void *ptr) //  single commentator action
+void *commentatorExec(void *ptr)
 {
     for (int i = 0 ; i < q ; i++){
-    pthread_mutex_lock(&speakerLock);
-    float prob = rand() % 10;
+        pthread_mutex_lock(&speakerLock);
+        pthread_cond_wait(&questionCond, &questionLock);
+        
+        float prob = rand() % 10;
 
-    if (p * 10 >= prob)
-    {
-        // commentator wants to answer
-        printf("in COMMENTATOR %d \n", commentatorID + 1);
-        // wait for new question
-        printf("---Commentator %d speaks \n", commentatorID + 1);
-        pthread_sleep(getSpeakTime(t));
-        micQueue.push(commentatorID);
-    }
-    else
-    {
-        printf("---Commentator %d DON'T speaks \n", commentatorID + 1);
-    }
-    commentatorID++;
-    
-    //pthread_mutex_unlock(&iter_lock);
-    printf("end of the commentator %d \n", commentatorID);
-    // exit(0);
-    if (commentatorID == n)
-    {
-        //pthread_cond_broadcast(&new_question);
-        pthread_mutex_unlock(&question_mutex);
-        printf("\n\n");
-    }
-    pthread_mutex_unlock(&speakerLock);
+        if (p * 10 >= prob)
+        {
+            // commentator wants to answer
+            printf("in COMMENTATOR %d \n", commentatorID + 1);
+            printf("---Commentator %d speaks \n", commentatorID + 1);
+            pthread_sleep(getSpeakTime(t));
+
+            //push to queue
+
+            //wait for you can speak signal
+
+            //speak
+
+            //konusmam bitti signal yolla
+        }
+        else
+        {
+            printf("---Commentator %d doesn't speak \n", commentatorID + 1);
+        }
+        commentatorID++;
+        
+        printf("end of the commentator %d \n", commentatorID);
+        if (commentatorID == n)
+        {
+            // signal yolla her sey pushlandi bu sru icin
+            commentatorID = 0;
+            printf("\n\n");
+        }
+        pthread_mutex_unlock(&speakerLock);
     }
     return NULL;
     //pthread_exit(0);
@@ -118,24 +120,23 @@ void *commentatorExec(void *ptr) //  single commentator action
 
 void *moderatorExec(void *ptr) // moderator action
 {               
-    printf("DEBUG 1 \n");
-
     for (int i = 0; i < q; i++)
-    {
-        pthread_mutex_lock(&question_mutex);
-        printf("DEBUG 2 \n");
-        pthread_t commentatorThread[n];
-       
-        printf("DEBUG 3 \n");
-
-        commEnd = false;
-        commentatorID = 0;
-        //pthread_mutex_lock(&speakerLock);
+    {   
         printf("ask question %d \n", currentQuestionNum + 1);
         currentQuestionNum++;
+        pthread_cond_signal(&questionCond);
+
+        // her seyin pushalnmasini bekle
+        // queue yu sirayla popla while da
+            // you can speak signal
+            // konusmam bitti signal bekle
+
+        //her sey bitti sinyalini bekle sonraki soruya gec
+
     }
 
-    pthread_exit(0);
+    // signal yolla her sey bitti
+    exit(0);
 }
 
 // returns a random double value speaktime
