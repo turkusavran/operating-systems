@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     pthread_sleep(2);
     pthread_create(&moderatorThread, NULL, &moderatorExec, NULL);
 
-    for(int i = 0 ; i < n+1 ; i++){
+    for(int i = 0 ; i < n ; i++){
         pthread_join(commentatorThread[i], NULL);
     }
 
@@ -89,13 +89,11 @@ int main(int argc, char *argv[])
 
 void *commentatorExec(void *ptr)
 {
-    printf("hello\n");
     for (int i = 0 ; i < q ; i++){
         //pthread_mutex_lock(&questionLock);
         pthread_cond_wait(&questionCond, &questionLock);
         pthread_mutex_unlock(&questionLock);
 
-        printf("aloha\n");
         float prob = rand() % 10;
         commentator++;
         //if (p * 10 >= prob)
@@ -108,7 +106,6 @@ void *commentatorExec(void *ptr)
             //push to queue
             if(commentator == n) {
                 //her sey pushlandi
-                printf("Hello");
                 pthread_cond_signal(&queueCond);
             }
             //wait for you can speak signal
@@ -127,18 +124,17 @@ void *commentatorExec(void *ptr)
             printf("---Commentator %d doesn't speak \n", commentator);
         }
         
-
         printf("end of the commentator %d \n", commentator);
         if (commentator == n)
         {
-            printf("commantator is n\n");
             commentator = 0;
             printf("\n\n");
+           // pthread_cond_signal(&questionCond);
+
         }
 
     }
-    return NULL;
-    //pthread_exit(0);
+    pthread_exit(0);
 }
 
 void *moderatorExec(void *ptr) // moderator action
@@ -153,7 +149,6 @@ void *moderatorExec(void *ptr) // moderator action
         pthread_mutex_unlock(&queueLock);
         // queue yu sirayla popla while da
         for(int i = 0 ; i < speaker ; i++){
-            printf("aloha22\n");
             // you can speak signal
             pthread_cond_signal(&speakCond);
             // konusmam bitti signal bekle
@@ -161,7 +156,10 @@ void *moderatorExec(void *ptr) // moderator action
             pthread_mutex_unlock(&endSpeakLock);
         }
         speaker = 0;
+        //commentator = 0;
         //her sey bitti sinyalini bekle sonraki soruya gec
+       //pthread_cond_wait(&questionCond, &questionLock);
+        //pthread_mutex_unlock(&questionLock);
 
     }
 
