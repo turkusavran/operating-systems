@@ -12,7 +12,7 @@
 // Function declarations
 int pthread_sleep(double seconds);
 void *moderatorExec(void *ptr); // moderator action
-float getSpeakTime(int t);      // calculates random speak time between 1 and t
+double getSpeakTime(int t);      // calculates random speak time between 1 and t
 void *commentatorExec(void *ptr);
 void inputCommands(int argc, char *argv[], double p, int &n, int &q, int &t);
 
@@ -22,10 +22,9 @@ int n = 5;     // number of commentators
 int q = 3;     // number of questions
 int t = 10;    // maximum possible speak time
 int speaker = 0;
-int commentator = 0;
+int commentatorID = 0;
 
 // Global variables      
-int commentatorID = 0;
 pthread_mutex_t speakerLock;    // lock for the speakers
 pthread_mutex_t questionLock;   // lock for the next question
 pthread_cond_t questionCond;    // cond for next question
@@ -37,24 +36,7 @@ pthread_mutex_t endSpeakLock;
 pthread_cond_t endSpeakCond;
 
 // Queues
-//std::queue<Commentator> answerQueue;
-
-// Structures
-struct Commentator
-{
-    int commentatorID;     // id of the commentator 1 to n
-    char status;           // status of the commentator. it can waits on queue 'Q', speaks 'S' or just waits idle 'I'
-    time_t requestTime;    // time when the commentator is joins the queue
-    time_t execTime;       // time when the commentator leaves the queue
-    time_t turnaroundTime; // execTime-requestTime
-    pthread_mutex_t commentator_mutex = speakerLock;
-};
-
-struct Moderator
-{
-    char status;      // status of the moderator. it can wait commentators answers 'W' or ask questions 'A'
-    int question = 0; // current question
-};
+std::queue<int> answerQueue;
 
 // Main
 int main(int argc, char *argv[])
@@ -65,15 +47,10 @@ int main(int argc, char *argv[])
     inputCommands(argc, argv, p, n, q, t);
     pthread_t commentatorThread[n];
     printf("Total %d Commentators \n", n);
-    printf("Total %d Questions \n \n", q);
-
-    pthread_cond_init(&questionCond, NULL);
-    pthread_mutex_init(&questionLock, NULL);
-    pthread_mutex_init(&speakerLock, NULL);
+    printf("Total %d Questions \n\n", q);
     
     for (int i = 0; i < n; i++) 
     {
-        printf("Commentator thread %d created \n", i + 1);
         pthread_create(&commentatorThread[i], NULL, commentatorExec, NULL);
     }
     pthread_sleep(2);
@@ -89,45 +66,49 @@ int main(int argc, char *argv[])
 
 void *commentatorExec(void *ptr)
 {
+    int myID = pthread_self();
     for (int i = 0 ; i < q ; i++){
-        //pthread_mutex_lock(&questionLock);
         pthread_cond_wait(&questionCond, &questionLock);
         pthread_mutex_unlock(&questionLock);
 
         float prob = rand() % 10;
-        commentator++;
         //if (p * 10 >= prob)
         if(true)
         {
             speaker++;
+
             // commentator wants to answer
-            printf("In COMMENTATOR %d \n", commentator);
+            printf("Commentator %d will speak \n", myID);
 
             //push to queue
-            if(commentator == n) {
-                //her sey pushlandi
-                pthread_cond_signal(&queueCond);
-            }
-            //wait for you can speak signal
-            pthread_cond_wait(&speakCond, &speakLock);
-            pthread_mutex_unlock(&speakLock);
+            pthread_mutex_lock(&queueLock);
+            answerQueue.push(myID);
+            pthread_mutex_unlock(&queueLock);
+            printf("%d\n",answerQueue.back());
+        }
+        else
+        {
+            printf("---Commentator %d will not speak \n", myID);
+        }
 
+        //Signal everything is pushed
+        pthread_cond_signal(&queueCond);
+
+        //wait for you can speak signal
+        pthread_cond_wait(&speakCond, &speakLock);
+        if(myID == commentatorID){
             //speak
-            printf("---Commentator %d speaks \n", commentator);
+            printf("---Commentator %d speaks \n", myID);
             pthread_sleep(getSpeakTime(t));
 
             //konusmam bitti signal yolla
             pthread_cond_signal(&endSpeakCond);
         }
-        else
+        pthread_mutex_unlock(&speakLock);
+
+        printf("end of the commentator %d \n", myID);
+        if (answerQueue.size() == 0)
         {
-            printf("---Commentator %d doesn't speak \n", commentator);
-        }
-        
-        printf("end of the commentator %d \n", commentator);
-        if (commentator == n)
-        {
-            commentator = 0;
             printf("\n\n");
            // pthread_cond_signal(&questionCond);
 
@@ -141,16 +122,22 @@ void *moderatorExec(void *ptr) // moderator action
 {               
     for (int i = 0; i < q; i++)
     {   
-        printf("ask question %d \n", i + 1);
+        printf("Ask question %d \n", i + 1);
         pthread_cond_broadcast(&questionCond);
 
         // her seyin pushalnmasini bekle
         pthread_cond_wait(&queueCond, &queueLock);
         pthread_mutex_unlock(&queueLock);
-        // queue yu sirayla popla while da
+       
+        // Pop the queue
         for(int i = 0 ; i < speaker ; i++){
+            //queuedon popla id yi esitle
+            commentatorID = answerQueue.front();
+            answerQueue.pop();
+            printf("popped %d\n",answerQueue.front());
             // you can speak signal
             pthread_cond_signal(&speakCond);
+
             // konusmam bitti signal bekle
             pthread_cond_wait(&endSpeakCond, &endSpeakLock);
             pthread_mutex_unlock(&endSpeakLock);
@@ -166,44 +153,42 @@ void *moderatorExec(void *ptr) // moderator action
     pthread_exit(0); 
 }
 
-// returns a random double value speaktime
-float getSpeakTime(int t)
+// Return a random speaktime value 
+double getSpeakTime(int t)
 {
     srand(time(NULL));
     double speakTime = rand() % t + 1; // random speak time
     return speakTime;
 }
 
-// Helper function to take inputs
+// Take and parse inputs
 void inputCommands(int argc, char *argv[], double p, int &n, int &q, int &t)
 {
     int cmd;
 
     while ((cmd = getopt(argc, argv, "p:n:q:t:")) != -1)
     {
-        switch (cmd)
-        {
-        case 'p':
-            p = atof(optarg);
-            std::cout << "Answer with probability:  " << optarg << std::endl;
-            break;
-        case 'n':
-            n = atoi(optarg);
-            std::cout << " Number of commentators:  " << optarg << std::endl;
-            break;
-        case 'q':
-            q = atoi(optarg);
-            std::cout << " Number of questions:  " << optarg << std::endl;
-            break;
-        case 't':
-            t = atoi(optarg);
-            std::cout << " Maximum speak time:  " << optarg << std::endl;
-            break;
-        default:
-            exit(EXIT_FAILURE);
+        switch (cmd) {
+            case 'p':
+                p = atof(optarg);
+                printf("Answer with probability: %s\n", optarg);
+                break;
+            case 'n':
+                n = atoi(optarg);
+                printf("Number of commentators: %s\n", optarg);
+                break;
+            case 'q':
+                q = atoi(optarg);
+                printf("Number of questions: %s\n", optarg);
+                break;
+            case 't':
+                t = atoi(optarg);
+                printf("Maximum speak time: %s\n", optarg);
+                break;
+            default:
+                exit(EXIT_FAILURE);
+            }
         }
-    }
-    //return NULL;
 }
 
 /**
