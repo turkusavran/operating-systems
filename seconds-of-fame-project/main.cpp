@@ -34,6 +34,8 @@ pthread_mutex_t speakLock;      // lock for speaking in order
 pthread_cond_t speakCond;
 pthread_mutex_t endSpeakLock;
 pthread_cond_t endSpeakCond;
+pthread_mutex_t endOfQuestionLock;   // lock for the next question
+pthread_cond_t endOfQuestionCond;
 
 // Queues
 std::queue<int> answerQueue;
@@ -67,16 +69,19 @@ int main(int argc, char *argv[])
 void *commentatorExec(void *ptr)
 {
     int myID = pthread_self();
+    bool willSpeak = false;
+   
     for (int i = 0 ; i < q ; i++){
         pthread_cond_wait(&questionCond, &questionLock);
         pthread_mutex_unlock(&questionLock);
-
+        speaker = 0;
         float prob = rand() % 10;
-        //if (p * 10 >= prob)
-        if(true)
+        //printf("random %f, our prob %f\n", prob, p);
+        //if(p * 10 >= prob)
+        if(false)
         {
             speaker++;
-
+            willSpeak = true;
             // commentator wants to answer
             printf("Commentator %d will speak \n", myID);
 
@@ -94,20 +99,25 @@ void *commentatorExec(void *ptr)
         //Signal everything is pushed
         pthread_cond_signal(&queueCond);
 
-        //wait for you can speak signal
-        pthread_cond_wait(&speakCond, &speakLock);
-        if(myID == commentatorID){
-            //speak
-            printf("---Commentator %d speaks \n", myID);
-            pthread_sleep(getSpeakTime(t));
+        if(willSpeak){
+            //wait for you can speak signal
+            pthread_cond_wait(&speakCond, &speakLock);
+            if(myID == commentatorID){
+                //speak
+                printf("---Commentator %d speaks \n", myID);
+                pthread_sleep(getSpeakTime(t));
 
+                //konusmam bitti signal yolla
+                pthread_cond_signal(&endSpeakCond);
+            }
+            pthread_mutex_unlock(&speakLock);
+        } else {
             //konusmam bitti signal yolla
             pthread_cond_signal(&endSpeakCond);
         }
-        pthread_mutex_unlock(&speakLock);
 
         printf("end of the commentator %d \n", myID);
-        if (answerQueue.size() == 0)
+        if (speaker==-1)
         {
             printf("\n\n");
            // pthread_cond_signal(&questionCond);
@@ -142,7 +152,7 @@ void *moderatorExec(void *ptr) // moderator action
             pthread_cond_wait(&endSpeakCond, &endSpeakLock);
             pthread_mutex_unlock(&endSpeakLock);
         }
-        speaker = 0;
+        speaker = -1;
         //commentator = 0;
         //her sey bitti sinyalini bekle sonraki soruya gec
        //pthread_cond_wait(&questionCond, &questionLock);
