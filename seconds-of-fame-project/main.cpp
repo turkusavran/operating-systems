@@ -21,7 +21,6 @@ double p = 0.8; // answering probability
 int n = 5;     // number of commentators
 int q = 3;     // number of questions
 int t = 10;    // maximum possible speak time
-int speaker = 0;
 int commentatorID = 0;
 int commentator =0;
 
@@ -35,6 +34,8 @@ pthread_mutex_t speakLock;      // lock for speaking in order
 pthread_cond_t speakCond;
 pthread_mutex_t endSpeakLock;   // lock for end of speaking
 pthread_cond_t endSpeakCond;
+pthread_mutex_t endProgram;   // lock for end of program
+pthread_cond_t endProgramCond;
 
 // Queues
 std::queue<int> answerQueue;
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
     {
         pthread_create(&commentatorThread[i], NULL, commentatorExec, NULL);
     }
-    pthread_sleep(2);
+    pthread_sleep(1);
     pthread_create(&moderatorThread, NULL, &moderatorExec, NULL);
 
     for(int i = 0 ; i < n ; i++){
@@ -71,13 +72,13 @@ void *commentatorExec(void *ptr)
     bool willSpeak = false;
    
     for (int i = 0 ; i < q ; i++){
+        //printf("COMMENTATOR %d\n",myID);
         pthread_cond_wait(&questionCond, &questionLock);
         pthread_mutex_unlock(&questionLock);
     
         float prob = rand() % 10;
         if(p * 10 >= prob)
         {
-            speaker++;
             willSpeak = true;
             // commentator wants to answer
             printf("--Commentator %d will speak \n", myID);
@@ -95,7 +96,8 @@ void *commentatorExec(void *ptr)
         commentator++;
 
         // Signal to moderator that queue pushing is ended
-        if(commentator == n ){
+        if(commentator == n){
+            pthread_sleep(0.2);
             pthread_cond_signal(&queueCond);
         }
 
@@ -112,13 +114,11 @@ void *commentatorExec(void *ptr)
                 pthread_cond_signal(&endSpeakCond);
            // }
             pthread_mutex_unlock(&speakLock);
-        } else {
-            // Send the signal anyway
-            pthread_cond_signal(&endSpeakCond);
         }
 
         printf("End of the commentator %d \n", myID);
     }
+    
     pthread_exit(0);
 }
 
@@ -127,17 +127,21 @@ void *moderatorExec(void *ptr) // moderator action
     for (int i = 0; i < q; i++)
     {   
         printf("Ask question %d \n", i + 1);
+        pthread_sleep(0.2);
         pthread_cond_broadcast(&questionCond);
 
         // Wait every question to be pushed
         pthread_cond_wait(&queueCond, &queueLock);
         pthread_mutex_unlock(&queueLock);
-       
+        int queueSize = answerQueue.size();
+
         // Pop the queue in order
-        for(int i = 0 ; i < speaker ; i++){
+        for(int i = 0 ; i < queueSize ; i++){
             commentatorID = answerQueue.front();
+            pthread_mutex_lock(&queueLock);
             answerQueue.pop();
-           
+            pthread_mutex_unlock(&queueLock);
+
             // Send speak signal
             pthread_cond_signal(&speakCond);
 
@@ -146,10 +150,9 @@ void *moderatorExec(void *ptr) // moderator action
             pthread_mutex_unlock(&endSpeakLock);
         }
         printf("\n\n");
-        speaker = 0;
         commentator = 0;
     }
-
+    
     pthread_exit(0); 
 }
 
