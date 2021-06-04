@@ -48,25 +48,24 @@ std::queue<int> answerQueue;
 int main(int argc, char *argv[])
 {
     time(&start_time);
-    pthread_t moderatorThread;
-
     clock_gettime(CLOCK_MONOTONIC, &tstart);
 
-    // takes input parameters
+    // take input parameters
     inputCommands(argc, argv, p, n, q, t);
+
+    pthread_t moderatorThread;
     pthread_t commentatorThread[n];
+    
     printf("Total %d Commentators \n", n);
     printf("Total %d Questions \n\n", q);
 
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         pthread_create(&commentatorThread[i], NULL, commentatorExec, NULL);
     }
     pthread_sleep(1);
     pthread_create(&moderatorThread, NULL, &moderatorExec, NULL);
 
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         pthread_join(commentatorThread[i], NULL);
     }
 
@@ -78,72 +77,63 @@ void *commentatorExec(void *ptr)
 {
     int myID = pthread_self();
     bool willSpeak = false;
+    float speakTime;
 
-    for (int i = 0; i < q; i++)
-    {
-        //printf("COMMENTATOR %d\n",myID);
+    for (int i = 0; i < q; i++) {
         pthread_cond_wait(&questionCond, &questionLock);
         pthread_mutex_unlock(&questionLock);
 
         float prob = rand() % 10;
-        if (p * 10 >= prob)
-        {
+        if (p * 10 >= prob) {
             willSpeak = true;
-            // commentator wants to answer
 
+            // Create answer request
             timelog();
-            printf("--Commentator %d will speak \n", myID);
+            std::cout <<"Commentator #"<<myID <<" generates answer, position in queue: "<<answerQueue.size()+1<<"\n";
 
-            // push to queue
+            // Push to queue
             pthread_mutex_lock(&queueLock);
             answerQueue.push(myID);
             pthread_mutex_unlock(&queueLock);
         }
-        else
-        {
+        else {
             willSpeak = false;
         }
         commentator++;
 
         // Signal to moderator that queue pushing is ended
-        if (commentator == n)
-        {
+        if (commentator == n) {
             pthread_sleep(0.2);
             pthread_cond_signal(&queueCond);
         }
 
-        if (willSpeak)
-        {
+        if (willSpeak) {
             // Wait for speak signal
             pthread_cond_wait(&speakCond, &speakLock);
-            //if(myID == commentatorID){
-
+    
             // Speak
+            speakTime = getSpeakTime(t);
             timelog();
-            printf(">>>Commentator %d speaks \n", myID);
-            pthread_sleep(getSpeakTime(t));
+            printf(">>>Commentator #%d's turn to speak for %0.3f seconds\n", myID, speakTime);
+            pthread_sleep(speakTime);
 
             // Send end of speaking signal
+            timelog();
+            printf("Commentator #%d finished speaking\n", myID);
             pthread_cond_signal(&endSpeakCond);
-            // }
             pthread_mutex_unlock(&speakLock);
         }
-
-        timelog();
-
-        printf("End of the commentator %d \n", myID);
     }
 
     pthread_exit(0);
 }
 
-void *moderatorExec(void *ptr) // moderator action
+void *moderatorExec(void *ptr) 
 {
-    for (int i = 0; i < q; i++)
-    {
+    for (int i = 0; i < q; i++) {
         timelog();
 
-        printf("Moderator asks question %d \n", i + 1);
+        printf("Moderator asks question %d\n", i + 1);
         pthread_sleep(0.2);
         pthread_cond_broadcast(&questionCond);
 
@@ -152,9 +142,8 @@ void *moderatorExec(void *ptr) // moderator action
         pthread_mutex_unlock(&queueLock);
         int queueSize = answerQueue.size();
 
-        // Pop the queue in order
-        for (int i = 0; i < queueSize; i++)
-        {
+        for (int i = 0; i < queueSize; i++) {
+            // Pop the queue in order
             commentatorID = answerQueue.front();
             pthread_mutex_lock(&queueLock);
             answerQueue.pop();
@@ -178,7 +167,7 @@ void *moderatorExec(void *ptr) // moderator action
 double getSpeakTime(int t)
 {
     srand(time(NULL));
-    double speakTime = rand() % t + 1; // random speak time
+    double speakTime = (rand() % (1000 * t)) / 1000.0 + 1; // random speak time
     return speakTime;
 }
 
@@ -187,44 +176,36 @@ void inputCommands(int argc, char *argv[], double &p, int &n, int &q, int &t)
 {
     int cmd;
 
-    while ((cmd = getopt(argc, argv, "p:n:q:t:")) != -1)
-    {
-        switch (cmd)
-        {
-        case 'p':
-            p = atof(optarg);
-            printf("Answer with probability: %s\n", optarg);
-            break;
-        case 'n':
-            n = atoi(optarg);
-            printf("Number of commentators: %s\n", optarg);
-            break;
-        case 'q':
-            q = atoi(optarg);
-            printf("Number of questions: %s\n", optarg);
-            break;
-        case 't':
-            t = atoi(optarg);
-            printf("Maximum speak time: %s\n", optarg);
-            break;
-        default:
-            exit(EXIT_FAILURE);
+    while ((cmd = getopt(argc, argv, "p:n:q:t:")) != -1) {
+        switch (cmd) {
+            case 'n':
+                n = atoi(optarg);
+                printf("Number of commentators: %s\n", optarg);
+                break;
+            case 'p':
+                p = atof(optarg);
+                printf("Answering probability: %s\n", optarg);
+                break;
+            
+            case 'q':
+                q = atoi(optarg);
+                printf("Number of questions: %s\n", optarg);
+                break;
+            case 't':
+                t = atoi(optarg);
+                printf("Maximum speaking time: %s\n", optarg);
+                break;
+            default:
+                exit(EXIT_FAILURE);
         }
     }
 }
 
-// prints the timestamps as milliseconds
+// Print the timestamp in milliseconds
 void timelog()
 {
     clock_gettime(CLOCK_MONOTONIC, &tend);
-    printf("%0.3f ms    ", ((double)tend.tv_sec + 1.0e-9 * tend.tv_nsec) - ((double)tstart.tv_sec + 1.0e-9 * tstart.tv_nsec));
-
-    /*
-    time_t current_time;
-    time(&current_time);
-    double diff = difftime(current_time, start_time);
-    printf("%f \n", diff*1000);
-    */
+    printf("[%0.3f]    ", ((double)tend.tv_sec + 1.0e-9 * tend.tv_nsec) - ((double)tstart.tv_sec + 1.0e-9 * tstart.tv_nsec));
 }
 
 /**
@@ -238,12 +219,10 @@ int pthread_sleep(double seconds)
 {
     pthread_mutex_t mutex;
     pthread_cond_t conditionvar;
-    if (pthread_mutex_init(&mutex, NULL))
-    {
+    if (pthread_mutex_init(&mutex, NULL)) {
         return -1;
     }
-    if (pthread_cond_init(&conditionvar, NULL))
-    {
+    if (pthread_cond_init(&conditionvar, NULL)) {
         return -1;
     }
 
