@@ -29,4 +29,4 @@ with the desired parameters
 
 ### Part 3
 
-- We created a timelog function to print the exact time that an event occurs. It prints the milliseconds. 
+- We created a timelog function to print the elapsed time from the beginning to that event occurrence. It prints the milliseconds. 
