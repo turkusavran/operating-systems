@@ -56,14 +56,13 @@ int search_tlb(unsigned char logical_page)
 
   // return pagetable[logical_page];
 
-  int i;
-  for (i = max((tlbindex - TLB_SIZE), 0); i < tlbindex; i++)
+  for (int i = max((tlbindex - TLB_SIZE), 0); i < tlbindex; i++)
   {
-    struct tlbentry *entry = &tlb[i % TLB_SIZE];
+    struct tlbentry *ent = &tlb[i % TLB_SIZE];
 
-    if (entry->logical == logical_page)
+    if (ent->logical == logical_page)
     {
-      return entry->physical;
+      return ent->physical;
     }
   }
 
@@ -78,10 +77,10 @@ void add_to_tlb(unsigned char logical, unsigned char physical)
   // memcpy(main_memory + physical * PAGE_SIZE, backing + logical * PAGE_SIZE, PAGE_SIZE);
   // pagetable[logical] = physical;
 
-  struct tlbentry *entry = &tlb[tlbindex % TLB_SIZE];
+  struct tlbentry *ent = &tlb[tlbindex % TLB_SIZE];
   tlbindex++;
-  entry->logical = logical;
-  entry->physical = physical;
+  ent->logical = logical;
+  ent->physical = physical;
 }
 
 int main(int argc, const char *argv[])
