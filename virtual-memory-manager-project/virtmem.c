@@ -53,9 +53,6 @@ int max(int a, int b)
 int search_tlb(unsigned char logical_page)
 {
   /* TODO */
-
-  // return pagetable[logical_page];
-
   for (int i = max((tlbindex - TLB_SIZE), 0); i < tlbindex; i++)
   {
     struct tlbentry *ent = &tlb[i % TLB_SIZE];
@@ -73,10 +70,6 @@ int search_tlb(unsigned char logical_page)
 void add_to_tlb(unsigned char logical, unsigned char physical)
 {
   /* TODO */
-
-  // memcpy(main_memory + physical * PAGE_SIZE, backing + logical * PAGE_SIZE, PAGE_SIZE);
-  // pagetable[logical] = physical;
-
   struct tlbentry *ent = &tlb[tlbindex % TLB_SIZE];
   tlbindex++;
   ent->logical = logical;
