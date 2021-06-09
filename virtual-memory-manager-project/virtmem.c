@@ -25,8 +25,8 @@
 
 struct tlbentry
 {
-  unsigned char logical;
-  unsigned char physical;
+  int logical;
+  int physical;
 };
 
 // TLB is kept track of as a circular array, with the oldest element being overwritten once the TLB is full.
@@ -50,18 +50,38 @@ int max(int a, int b)
 }
 
 /* Returns the physical address from TLB or -1 if not present. */
-int search_tlb(unsigned char logical_page)
+int search_tlb(int logical_page)
 {
   /* TODO */
-  return pagetable[logical_page];
+
+  // return pagetable[logical_page];
+
+  int i;
+  for (i = max((tlbindex - TLB_SIZE), 0); i < tlbindex; i++)
+  {
+    struct tlbentry *entry = &tlb[i % TLB_SIZE];
+
+    if (entry->logical == logical_page)
+    {
+      return entry->physical;
+    }
+  }
+
+  return -1;
 }
 
 /* Adds the specified mapping to the TLB, replacing the oldest mapping (FIFO replacement). */
-void add_to_tlb(unsigned char logical, unsigned char physical)
+void add_to_tlb(int logical, int physical)
 {
   /* TODO */
-  memcpy(main_memory + physical * PAGE_SIZE, backing + logical * PAGE_SIZE, PAGE_SIZE);
-  pagetable[logical] = physical;
+
+  // memcpy(main_memory + physical * PAGE_SIZE, backing + logical * PAGE_SIZE, PAGE_SIZE);
+  // pagetable[logical] = physical;
+
+  struct tlbentry *entry = &tlb[tlbindex % TLB_SIZE];
+  tlbindex++;
+  entry->logical = logical;
+  entry->physical = physical;
 }
 
 int main(int argc, const char *argv[])
@@ -95,7 +115,7 @@ int main(int argc, const char *argv[])
   int page_faults = 0;
 
   // Number of the next unallocated physical page in main memory
-  unsigned char free_page = 0;
+  int free_page = 0;
 
   while (fgets(buffer, BUFFER_SIZE, input_fp) != NULL)
   {
@@ -126,6 +146,10 @@ int main(int argc, const char *argv[])
         page_faults++;
         physical_page = free_page;
         free_page++;
+        
+        memcpy(main_memory + physical_page * PAGE_SIZE, backing + logical_page * PAGE_SIZE, PAGE_SIZE);
+        
+        pagetable[logical_page] = physical_page;
       }
 
       add_to_tlb(logical_page, physical_page);
