@@ -25,8 +25,8 @@
 
 struct tlbentry
 {
-  int logical;
-  int physical;
+  unsigned char logical;
+  unsigned char physical;
 };
 
 // TLB is kept track of as a circular array, with the oldest element being overwritten once the TLB is full.
@@ -50,7 +50,7 @@ int max(int a, int b)
 }
 
 /* Returns the physical address from TLB or -1 if not present. */
-int search_tlb(int logical_page)
+int search_tlb(unsigned char logical_page)
 {
   /* TODO */
 
@@ -71,7 +71,7 @@ int search_tlb(int logical_page)
 }
 
 /* Adds the specified mapping to the TLB, replacing the oldest mapping (FIFO replacement). */
-void add_to_tlb(int logical, int physical)
+void add_to_tlb(unsigned char logical, unsigned char physical)
 {
   /* TODO */
 
@@ -115,7 +115,7 @@ int main(int argc, const char *argv[])
   int page_faults = 0;
 
   // Number of the next unallocated physical page in main memory
-  int free_page = 0;
+  unsigned char free_page = 0;
 
   while (fgets(buffer, BUFFER_SIZE, input_fp) != NULL)
   {
@@ -146,7 +146,7 @@ int main(int argc, const char *argv[])
         page_faults++;
         physical_page = free_page;
         free_page++;
-        
+
         memcpy(main_memory + physical_page * PAGE_SIZE, backing + logical_page * PAGE_SIZE, PAGE_SIZE);
         
         pagetable[logical_page] = physical_page;
